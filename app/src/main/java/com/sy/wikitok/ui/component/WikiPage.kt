@@ -1,5 +1,8 @@
 package com.sy.wikitok.ui.component
 
+import android.content.Intent
+import android.content.res.Configuration
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -7,9 +10,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -19,8 +22,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.sy.wikitok.ui.theme.WikiTokTheme
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
+import androidx.core.net.toUri
 
 /**
  * @author Yeung
@@ -31,8 +36,12 @@ import com.sy.wikitok.ui.theme.WikiTokTheme
 fun WikiPage(
     title: String,
     content: String,
-    imgUrl: String
+    imgUrl: String,
+    articleUrl: String,
+    modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+
     Box(modifier = Modifier.fillMaxSize()) {
 
         NetworkImage(
@@ -47,19 +56,19 @@ fun WikiPage(
                 .align(Alignment.BottomCenter)
                 .padding(16.dp),
             colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.6f)),
-            shape = RoundedCornerShape(8.dp)
+            shape = MaterialTheme.shapes.small,
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
                     text = title,
                     color = Color.White,
-                    fontSize = 20.sp
+                    fontSize = MaterialTheme.typography.titleLarge.fontSize,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = content,
                     color = Color.White.copy(alpha = 0.8f),
-                    fontSize = 14.sp,
+                    fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                     maxLines = 5,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -67,17 +76,38 @@ fun WikiPage(
                 Text(
                     text = "阅读更多 >>>",
                     color = Color.White,
-                    fontSize = 14.sp,
+                    fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            val uri = articleUrl.toUri().run {
+                                // 自动补全HTTP协议
+                                if (scheme.isNullOrBlank()) {
+                                    buildUpon().scheme("https").build()
+                                } else {
+                                    this
+                                }
+                            }
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, uri)
+                            )
+                        }
                 )
             }
         }
     }
 }
 
-@Preview
+@Preview(name = "preview_wikipage", uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun PreviewWikiPage() {
     WikiTokTheme {
-        WikiPage("标题", "内容".repeat(20), "")
+        WikiPage(
+            "标题",
+            "内容".repeat(20),
+            "",
+            articleUrl = "https://zh.wikipedia.org/wiki/示例页面"
+        )
     }
 }

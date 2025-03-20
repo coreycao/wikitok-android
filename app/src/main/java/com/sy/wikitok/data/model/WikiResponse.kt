@@ -49,6 +49,16 @@ data class Page(
     val thumbnail: Thumbnail? = null
 )
 
+fun Page.toArticle(): WikiArticle {
+    return WikiArticle(
+        id = pageid,
+        title = title,
+        content = extract,
+        coverUrl = thumbnail?.source ?: "",
+        articleUrl = canonicalurl
+    )
+}
+
 @Serializable
 data class Thumbnail(
     val source: String,

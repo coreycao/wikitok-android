@@ -13,4 +13,5 @@ data class WikiArticle(
     val title: String,
     val content: String,
     val coverUrl: String,
+    val articleUrl: String
 )

@@ -13,7 +13,8 @@ coroutines = "1.10.1"
 ktorBom = "3.1.0"
 lifecycleRuntimeKtx = "2.8.7"
 koin = "4.0.0"
-coil = "3.0.4"
+coil = "3.1.0"
+material3Icons = "1.7.8"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -29,6 +30,7 @@ androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-m3icons-ext = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "material3Icons" }
 
 # ktor
 ktor-bom = { group = "io.ktor", name = "ktor-bom", version.ref = "ktorBom" }
@@ -52,7 +54,7 @@ koin-androidx-compose = { group = "io.insert-koin", name = "koin-androidx-compos
 
 # Coil
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
-coil-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
+coil-network = { group = "io.coil-kt.coil3", name = "coil-network-ktor3", version.ref = "coil" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

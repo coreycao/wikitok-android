@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -24,9 +25,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sy.wikitok.data.model.WikiArticle
+import com.sy.wikitok.ui.component.IconFavorite
+import com.sy.wikitok.ui.component.IconHome
 import com.sy.wikitok.ui.component.WikiPage
 import com.sy.wikitok.ui.theme.WikiTokTheme
 import org.koin.androidx.viewmodel.ext.android.viewModel
@@ -70,12 +72,19 @@ private fun HomeScaffold(uiState: MainViewModel.MainUiState) {
                 NavigationBarItem(
                     selected = currentRoute == ROUTE_FEED,
                     onClick = { currentRoute = ROUTE_FEED },
-                    icon = { Text("Feed") }
+                    icon = { Icon(
+                        imageVector = IconHome,
+                        contentDescription = "首页"
+                    ) }
+
                 )
                 NavigationBarItem(
                     selected = currentRoute == ROUTE_FAVORITE,
                     onClick = { currentRoute = ROUTE_FAVORITE },
-                    icon = { Text("Favorite") }
+                    icon = { Icon(
+                        imageVector = IconFavorite,
+                        contentDescription = "收藏"
+                    ) }
                 )
             }
         }
@@ -119,7 +128,8 @@ private fun FeedScreen(wikiList: List<WikiArticle>) {
         WikiPage(
             title = article.title,
             content = article.content,
-            imgUrl = article.coverUrl
+            imgUrl = article.coverUrl,
+            articleUrl = article.articleUrl,
         )
     }
 }
@@ -136,7 +146,6 @@ private fun LoadingScreen() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         CircularProgressIndicator(
             color = MaterialTheme.colorScheme.primary,
-            strokeWidth = 3.dp
         )
     }
 }

@@ -2,6 +2,7 @@ package com.sy.wikitok.data.repository
 
 import com.sy.wikitok.data.model.WikiApiResponse
 import com.sy.wikitok.data.model.WikiArticle
+import com.sy.wikitok.data.model.toArticle
 import com.sy.wikitok.network.ApiService
 import io.ktor.client.call.body
 
@@ -14,16 +15,10 @@ class RemoteRepositoryImpl(private val apiService: ApiService) : RemoteRepositor
         return runCatching {
             apiService.requestWikiList()
                 .body<WikiApiResponse>()
-                .query
-                .pages.filter {
+                .query.pages.filter {
                     it.value.thumbnail != null
                 }.map {
-                    WikiArticle(
-                        id = it.value.pageid,
-                        title = it.value.title,
-                        content = it.value.extract,
-                        coverUrl = it.value.thumbnail!!.source
-                    )
+                    it.value.toArticle()
                 }
         }
     }
