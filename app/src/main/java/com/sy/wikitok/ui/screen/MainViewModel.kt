@@ -117,7 +117,7 @@ class MainViewModel(private val wikiRepository: WikiRepository) : ViewModel() {
                 wikiRepository.addFavorite(wikiArticle)
                 // before add the item to the favorite list, check if the item is already in the favorite list
                 _favoriteListState.update {
-                    currentFavoriteList.filter { it.id == wikiArticle.id }.plus(wikiArticle).toList()
+                    currentFavoriteList.filter { it.id != wikiArticle.id }.plus(wikiArticle).toList()
                 }
 
             }
