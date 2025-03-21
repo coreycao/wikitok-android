@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.CircularProgressIndicator
@@ -25,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -79,6 +81,19 @@ private fun HomeScaffold(uiState: MainViewModel.MainUiState) {
     val viewModel: MainViewModel = koinViewModel()
     var currentRoute by rememberSaveable { mutableStateOf(ROUTE_FEED) }
 
+    // remember pager state
+    var currentPage by rememberSaveable { mutableIntStateOf(0) }
+    val pagerState = rememberPagerState(initialPage = currentPage) {
+        if (uiState is MainViewModel.MainUiState.Success) {
+            uiState.wikiList.size
+        } else {
+            0
+        }
+    }
+    LaunchedEffect(pagerState.currentPage) {
+        currentPage = pagerState.currentPage
+    }
+
     Scaffold(
         bottomBar = {
             NavigationBar {
@@ -119,7 +134,8 @@ private fun HomeScaffold(uiState: MainViewModel.MainUiState) {
                         is MainViewModel.MainUiState.Loading -> LoadingScreen()
                         is MainViewModel.MainUiState.Success -> FeedScreen(
                             uiState.wikiList,
-                            viewModel::onDoubleTab
+                            pagerState = pagerState,
+                            onDoubleTab = viewModel::onDoubleTab
                         )
 
                         is MainViewModel.MainUiState.Error -> ErrorScreen(uiState.message)
@@ -140,8 +156,12 @@ private fun HomeScaffold(uiState: MainViewModel.MainUiState) {
 }
 
 @Composable
-private fun FeedScreen(wikiList: List<WikiArticle>, onDoubleTab: (WikiArticle) -> Unit) {
-    val pagerState = rememberPagerState(pageCount = { wikiList.size })
+private fun FeedScreen(
+    wikiList: List<WikiArticle>,
+    onDoubleTab: (WikiArticle) -> Unit,
+    pagerState: PagerState
+) {
+
 
     if (wikiList.isEmpty()) {
         LoadingScreen()
