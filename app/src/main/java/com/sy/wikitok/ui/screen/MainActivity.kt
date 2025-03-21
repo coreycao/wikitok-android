@@ -4,10 +4,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.CircularProgressIndicator
@@ -16,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -25,14 +30,18 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sy.wikitok.R
 import com.sy.wikitok.data.model.WikiArticle
+import com.sy.wikitok.ui.component.FavItem
 import com.sy.wikitok.ui.component.IconFavorite
 import com.sy.wikitok.ui.component.IconHome
 import com.sy.wikitok.ui.component.WikiPage
 import com.sy.wikitok.ui.theme.WikiTokTheme
+import org.koin.androidx.compose.koinViewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 /**
@@ -56,6 +65,7 @@ class MainActivity : ComponentActivity() {
 
                 LaunchedEffect(key1 = Unit, block = {
                     viewModel.loadWikiList()
+                    viewModel.loadFavoriteList()
                 })
 
                 HomeScaffold(uiState)
@@ -66,6 +76,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun HomeScaffold(uiState: MainViewModel.MainUiState) {
+    val viewModel: MainViewModel = koinViewModel()
     var currentRoute by rememberSaveable { mutableStateOf(ROUTE_FEED) }
 
     Scaffold(
@@ -100,24 +111,36 @@ private fun HomeScaffold(uiState: MainViewModel.MainUiState) {
                 .fillMaxSize()
                 .consumeWindowInsets(innerPadding)
                 .padding(bottom = innerPadding.calculateBottomPadding())
+
         ) {
             when (currentRoute) {
                 ROUTE_FEED -> {
                     when (uiState) {
                         is MainViewModel.MainUiState.Loading -> LoadingScreen()
-                        is MainViewModel.MainUiState.Success -> FeedScreen(uiState.wikiList)
+                        is MainViewModel.MainUiState.Success -> FeedScreen(
+                            uiState.wikiList,
+                            viewModel::onDoubleTab
+                        )
+
                         is MainViewModel.MainUiState.Error -> ErrorScreen(uiState.message)
                     }
                 }
 
-                ROUTE_FAVORITE -> FavoriteScreen()
+                ROUTE_FAVORITE ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(top = innerPadding.calculateTopPadding())
+                    ) {
+                        FavoriteScreen()
+                    }
             }
         }
     }
 }
 
 @Composable
-private fun FeedScreen(wikiList: List<WikiArticle>) {
+private fun FeedScreen(wikiList: List<WikiArticle>, onDoubleTab: (WikiArticle) -> Unit) {
     val pagerState = rememberPagerState(pageCount = { wikiList.size })
 
     if (wikiList.isEmpty()) {
@@ -128,22 +151,51 @@ private fun FeedScreen(wikiList: List<WikiArticle>) {
     VerticalPager(
         state = pagerState,
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxSize(),
     ) { page ->
         val article = wikiList[page]
-        WikiPage(
-            title = article.title,
-            content = article.content,
-            imgUrl = article.coverUrl,
-            articleUrl = article.articleUrl,
-        )
+
+        Surface(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onDoubleTap = {
+                            onDoubleTab(article)
+                        })
+                }) {
+            WikiPage(
+                title = article.title,
+                content = article.content,
+                imgUrl = article.imgUrl,
+                articleUrl = article.linkUrl,
+                isFavorite = article.isFavorite,
+            )
+
+        }
     }
 }
 
 @Composable
-private fun FavoriteScreen() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Favorite Page")
+private fun FavoriteScreen(
+    viewModel: MainViewModel = koinViewModel(),
+) {
+    val favoriteList by viewModel.favoriteListState.collectAsStateWithLifecycle()
+    if (favoriteList.isEmpty()) {
+        EmptyScreen()
+        return
+    }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(8.dp)
+    ) {
+        items(favoriteList.size) { index ->
+            FavItem(
+                favoriteList[index],
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
     }
 }
 
@@ -153,6 +205,13 @@ private fun LoadingScreen() {
         CircularProgressIndicator(
             color = MaterialTheme.colorScheme.primary,
         )
+    }
+}
+
+@Composable
+private fun EmptyScreen() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(stringResource(R.string.txt_screen_empty))
     }
 }
 

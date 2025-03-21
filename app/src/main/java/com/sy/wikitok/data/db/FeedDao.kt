@@ -27,4 +27,7 @@ interface FeedDao {
         deleteAll()
         saveFeeds(feeds)
     }
+
+    @Query("UPDATE tb_feeds SET isFavorite = :isFavorite WHERE id = :id")
+    suspend fun updateFavorite(id: String, isFavorite: Boolean)
 }

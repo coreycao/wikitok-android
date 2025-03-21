@@ -24,6 +24,6 @@ fun NetworkImage(
             .data(url)
             .build(),
         contentDescription = contentDescription,
-        contentScale = contentScale
+        contentScale = contentScale,
     )
 }

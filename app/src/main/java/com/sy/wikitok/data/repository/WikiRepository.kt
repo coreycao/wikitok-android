@@ -5,7 +5,8 @@ import com.sy.wikitok.data.db.FeedDao
 import com.sy.wikitok.data.model.WikiApiResponse
 import com.sy.wikitok.data.model.WikiArticle
 import com.sy.wikitok.data.model.toArticle
-import com.sy.wikitok.data.model.toEntity
+import com.sy.wikitok.data.model.toFavoriteEntity
+import com.sy.wikitok.data.model.toFeedEntity
 import com.sy.wikitok.network.ApiService
 import io.ktor.client.call.body
 
@@ -19,7 +20,6 @@ class WikiRepository(
     private val favDao: FavoriteDao
 ) {
     suspend fun getRemoteWikiList(): Result<List<WikiArticle>> {
-        // return MockRepository().getWikiList()
         return runCatching {
             apiService.requestWikiList()
                 .body<WikiApiResponse>()
@@ -33,13 +33,33 @@ class WikiRepository(
 
     suspend fun saveWikiList(list: List<WikiArticle>) {
         feedDao.replaceAllFeeds(list.map {
-            it.toEntity()
+            it.toFeedEntity()
         })
     }
 
     suspend fun getLocalWikiList(): Result<List<WikiArticle>> {
         return runCatching {
             feedDao.readFeeds().map {
+                it.toArticle()
+            }
+        }
+    }
+
+    suspend fun toggleFavorite(wikiArticle: WikiArticle) {
+        feedDao.updateFavorite(wikiArticle.id, !wikiArticle.isFavorite)
+    }
+
+    suspend fun addFavorite(wikiArticle: WikiArticle) {
+        favDao.upsertFavorite(wikiArticle.toFavoriteEntity())
+    }
+
+    suspend fun removeFavorite(wikiArticle: WikiArticle) {
+        favDao.removeFavorite(wikiArticle.id)
+    }
+
+    suspend fun getFavoriteList(): Result<List<WikiArticle>> {
+        return runCatching {
+            favDao.readAllFavorites().map {
                 it.toArticle()
             }
         }

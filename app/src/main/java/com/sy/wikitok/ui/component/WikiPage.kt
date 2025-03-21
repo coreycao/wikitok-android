@@ -3,8 +3,10 @@ package com.sy.wikitok.ui.component
 import android.content.Intent
 import android.content.res.Configuration
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,6 +43,7 @@ fun WikiPage(
     content: String,
     imgUrl: String,
     articleUrl: String,
+    isFavorite: Boolean,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -62,11 +66,23 @@ fun WikiPage(
             shape = MaterialTheme.shapes.small,
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = title,
-                    color = Color.White,
-                    fontSize = MaterialTheme.typography.titleLarge.fontSize,
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = title,
+                        color = Color.White,
+                        fontSize = MaterialTheme.typography.titleLarge.fontSize,
+                    )
+                    if (isFavorite){
+                        Icon(
+                            imageVector = IconFavorite,
+                            contentDescription = stringResource(R.string.desc_nav_favorite)
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = content,
@@ -109,7 +125,8 @@ fun PreviewWikiPage() {
             "标题",
             "内容".repeat(20),
             "",
-            articleUrl = "https://zh.wikipedia.org/wiki/示例页面"
+            articleUrl = "https://zh.wikipedia.org/wiki/示例页面",
+            isFavorite = true
         )
     }
 }

@@ -54,8 +54,8 @@ fun Page.toArticle(): WikiArticle {
         id = pageid.toString(),
         title = title,
         content = extract,
-        coverUrl = thumbnail?.source ?: "",
-        articleUrl = canonicalurl
+        imgUrl = thumbnail?.source ?: "",
+        linkUrl = canonicalurl
     )
 }
 
