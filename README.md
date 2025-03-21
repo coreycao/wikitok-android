@@ -4,7 +4,14 @@ Android version of [wikitok](https://github.com/IsaacGemal/wikitok)
 
 A project to practice Android development.
 
-Still working on it.
+Features are not ready, still working on it.
+
+## Tech Stack
+
+- Ktor for network
+- Coil for image loader
+- Koil for DI
+- Room for data persist
 
 ## ScreenShot
 
