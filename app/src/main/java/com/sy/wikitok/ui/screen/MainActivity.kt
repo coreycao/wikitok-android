@@ -25,7 +25,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sy.wikitok.R
 import com.sy.wikitok.data.model.WikiArticle
 import com.sy.wikitok.ui.component.IconFavorite
 import com.sy.wikitok.ui.component.IconHome
@@ -74,7 +76,7 @@ private fun HomeScaffold(uiState: MainViewModel.MainUiState) {
                     onClick = { currentRoute = ROUTE_FEED },
                     icon = { Icon(
                         imageVector = IconHome,
-                        contentDescription = "首页"
+                        contentDescription = stringResource(R.string.desc_nav_feed)
                     ) }
 
                 )
@@ -83,7 +85,7 @@ private fun HomeScaffold(uiState: MainViewModel.MainUiState) {
                     onClick = { currentRoute = ROUTE_FAVORITE },
                     icon = { Icon(
                         imageVector = IconFavorite,
-                        contentDescription = "收藏"
+                        contentDescription = stringResource(R.string.desc_nav_favorite)
                     ) }
                 )
             }
@@ -153,6 +155,6 @@ private fun LoadingScreen() {
 @Composable
 private fun ErrorScreen(error: String) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(error)
+        Text(stringResource(R.string.txt_feed_error))
     }
 }

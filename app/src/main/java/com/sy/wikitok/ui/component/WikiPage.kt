@@ -24,8 +24,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.sy.wikitok.ui.theme.WikiTokTheme
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.core.net.toUri
+import com.sy.wikitok.R
 
 /**
  * @author Yeung
@@ -48,6 +50,7 @@ fun WikiPage(
             modifier = Modifier.fillMaxSize(),
             url = imgUrl,
             contentScale = ContentScale.Crop,
+            contentDescription = stringResource(R.string.desc_feed_bg),
         )
 
         Card(
@@ -74,7 +77,7 @@ fun WikiPage(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "阅读更多 >>>",
+                    text = stringResource(id = R.string.txt_read_more),
                     color = Color.White,
                     fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                     textAlign = TextAlign.End,
@@ -82,7 +85,6 @@ fun WikiPage(
                         .fillMaxWidth()
                         .clickable {
                             val uri = articleUrl.toUri().run {
-                                // 自动补全HTTP协议
                                 if (scheme.isNullOrBlank()) {
                                     buildUpon().scheme("https").build()
                                 } else {
