@@ -1,6 +1,8 @@
 package com.sy.wikitok.di
 
-import com.sy.wikitok.data.repository.RemoteRepositoryImpl
+import com.sy.wikitok.data.db.FavoriteDao
+import com.sy.wikitok.data.db.FeedDao
+import com.sy.wikitok.data.repository.WikiRepository
 import com.sy.wikitok.network.ApiService
 import org.koin.dsl.module
 
@@ -13,9 +15,17 @@ import org.koin.dsl.module
  */
 
 val repositoryModule = module {
-    single { provideRemoteRepository(get()) }
+    single { provideWikiRepository(get(), get(), get()) }
 }
 
-fun provideRemoteRepository(apiService: ApiService): RemoteRepositoryImpl {
-    return RemoteRepositoryImpl(apiService)
+fun provideWikiRepository(
+    apiService: ApiService,
+    feedDao: FeedDao,
+    favoriteDao: FavoriteDao
+): WikiRepository {
+    return WikiRepository(
+        apiService = apiService,
+        feedDao = feedDao,
+        favDao = favoriteDao
+    )
 }

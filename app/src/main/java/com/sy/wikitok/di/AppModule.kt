@@ -8,5 +8,10 @@ import org.koin.dsl.module
  */
 
 val appModule = module {
-    includes(networkModule, repositoryModule, viewModelModule)
+    includes(
+        networkModule,
+        roomModule,
+        repositoryModule,
+        viewModelModule
+    )
 }

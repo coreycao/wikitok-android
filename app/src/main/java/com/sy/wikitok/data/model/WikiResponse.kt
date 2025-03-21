@@ -51,7 +51,7 @@ data class Page(
 
 fun Page.toArticle(): WikiArticle {
     return WikiArticle(
-        id = pageid,
+        id = pageid.toString(),
         title = title,
         content = extract,
         coverUrl = thumbnail?.source ?: "",

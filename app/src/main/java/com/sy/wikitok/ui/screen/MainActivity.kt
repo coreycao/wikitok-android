@@ -74,19 +74,23 @@ private fun HomeScaffold(uiState: MainViewModel.MainUiState) {
                 NavigationBarItem(
                     selected = currentRoute == ROUTE_FEED,
                     onClick = { currentRoute = ROUTE_FEED },
-                    icon = { Icon(
-                        imageVector = IconHome,
-                        contentDescription = stringResource(R.string.desc_nav_feed)
-                    ) }
+                    icon = {
+                        Icon(
+                            imageVector = IconHome,
+                            contentDescription = stringResource(R.string.desc_nav_feed)
+                        )
+                    }
 
                 )
                 NavigationBarItem(
                     selected = currentRoute == ROUTE_FAVORITE,
                     onClick = { currentRoute = ROUTE_FAVORITE },
-                    icon = { Icon(
-                        imageVector = IconFavorite,
-                        contentDescription = stringResource(R.string.desc_nav_favorite)
-                    ) }
+                    icon = {
+                        Icon(
+                            imageVector = IconFavorite,
+                            contentDescription = stringResource(R.string.desc_nav_favorite)
+                        )
+                    }
                 )
             }
         }
@@ -153,7 +157,7 @@ private fun LoadingScreen() {
 }
 
 @Composable
-private fun ErrorScreen(error: String) {
+private fun ErrorScreen(errorMessage: String) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(stringResource(R.string.txt_feed_error))
     }

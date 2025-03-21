@@ -8,6 +8,7 @@ import coil3.request.crossfade
 import coil3.util.DebugLogger
 import com.sy.wikitok.di.appModule
 import org.koin.android.ext.koin.androidContext
+import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
 
 /**
@@ -18,6 +19,7 @@ class WikiTokApp : Application(), SingletonImageLoader.Factory {
     override fun onCreate() {
         super.onCreate()
         startKoin {
+            androidLogger()
             androidContext(this@WikiTokApp)
             modules(appModule)
         }
