@@ -49,8 +49,8 @@ data class Page(
     val thumbnail: Thumbnail? = null
 )
 
-fun Page.toArticle(): WikiArticle {
-    return WikiArticle(
+fun Page.toWikiModel(): WikiModel {
+    return WikiModel(
         id = pageid.toString(),
         title = title,
         content = extract,

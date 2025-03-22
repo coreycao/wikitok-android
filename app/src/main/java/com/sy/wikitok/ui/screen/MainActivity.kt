@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.CircularProgressIndicator
@@ -37,14 +36,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sy.wikitok.R
-import com.sy.wikitok.data.model.WikiArticle
+import com.sy.wikitok.data.model.WikiModel
 import com.sy.wikitok.ui.component.FavItem
 import com.sy.wikitok.ui.component.IconFavorite
 import com.sy.wikitok.ui.component.IconHome
 import com.sy.wikitok.ui.component.WikiPage
+import com.sy.wikitok.ui.screen.MainViewModel.UiState
 import com.sy.wikitok.ui.theme.WikiTokTheme
 import org.koin.androidx.compose.koinViewModel
-import org.koin.androidx.viewmodel.ext.android.viewModel
 
 /**
  * @author Yeung
@@ -62,37 +61,28 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             WikiTokTheme {
-                val viewModel: MainViewModel by viewModel()
-                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+                val feedViewModel: FeedViewModel = koinViewModel()
+                val feedUIState by feedViewModel.uiState.collectAsStateWithLifecycle()
+
+                val favoriteViewModel: FavoriteViewModel = koinViewModel()
+                val favoriteUIState by favoriteViewModel.favorites.collectAsStateWithLifecycle()
 
                 LaunchedEffect(key1 = Unit, block = {
-                    viewModel.loadWikiList()
-                    viewModel.loadFavoriteList()
+                    feedViewModel.loadWikiList()
                 })
 
-                HomeScaffold(uiState)
+                HomeScaffold(feedUIState, favoriteUIState)
             }
         }
     }
 }
 
 @Composable
-private fun HomeScaffold(uiState: MainViewModel.MainUiState) {
-    val viewModel: MainViewModel = koinViewModel()
-    var currentRoute by rememberSaveable { mutableStateOf(ROUTE_FEED) }
+private fun HomeScaffold(feedUIState: UiState, favoriteUIState: UiState) {
+    val feedViewModel: FeedViewModel = koinViewModel()
 
-    // remember pager state
-    var currentPage by rememberSaveable { mutableIntStateOf(0) }
-    val pagerState = rememberPagerState(initialPage = currentPage) {
-        if (uiState is MainViewModel.MainUiState.Success) {
-            uiState.wikiList.size
-        } else {
-            0
-        }
-    }
-    LaunchedEffect(pagerState.currentPage) {
-        currentPage = pagerState.currentPage
-    }
+    var currentRoute by rememberSaveable { mutableStateOf(ROUTE_FEED) }
 
     Scaffold(
         bottomBar = {
@@ -130,16 +120,10 @@ private fun HomeScaffold(uiState: MainViewModel.MainUiState) {
         ) {
             when (currentRoute) {
                 ROUTE_FEED -> {
-                    when (uiState) {
-                        is MainViewModel.MainUiState.Loading -> LoadingScreen()
-                        is MainViewModel.MainUiState.Success -> FeedScreen(
-                            uiState.wikiList,
-                            pagerState = pagerState,
-                            onDoubleTab = viewModel::onDoubleTab
-                        )
-
-                        is MainViewModel.MainUiState.Error -> ErrorScreen(uiState.message)
-                    }
+                    FeedScreen(
+                        feedUIState,
+                        onDoubleTab = feedViewModel::onDoubleTab
+                    )
                 }
 
                 ROUTE_FAVORITE ->
@@ -148,7 +132,7 @@ private fun HomeScaffold(uiState: MainViewModel.MainUiState) {
                             .fillMaxSize()
                             .padding(top = innerPadding.calculateTopPadding())
                     ) {
-                        FavoriteScreen()
+                        FavoriteScreen(favoriteUIState)
                     }
             }
         }
@@ -157,64 +141,86 @@ private fun HomeScaffold(uiState: MainViewModel.MainUiState) {
 
 @Composable
 private fun FeedScreen(
-    wikiList: List<WikiArticle>,
-    onDoubleTab: (WikiArticle) -> Unit,
-    pagerState: PagerState
+    feedUiState: UiState,
+    onDoubleTab: (WikiModel) -> Unit,
 ) {
 
+    val viewModel: FeedViewModel = koinViewModel()
 
-    if (wikiList.isEmpty()) {
-        LoadingScreen()
-        return
-    }
+    when (feedUiState) {
+        is UiState.Loading -> LoadingScreen()
+        is UiState.Error -> ErrorScreen()
+        is UiState.Success -> {
+            val wikiList = feedUiState.wikiList
+            if (wikiList.isEmpty()) {
+                EmptyScreen()
+            } else {
 
-    VerticalPager(
-        state = pagerState,
-        modifier = Modifier
-            .fillMaxSize(),
-    ) { page ->
-        val article = wikiList[page]
+                val pagerState = rememberPagerState(initialPage = viewModel.currentPage) {
+                    wikiList.size
+                }
 
-        Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onDoubleTap = {
-                            onDoubleTab(article)
-                        })
-                }) {
-            WikiPage(
-                title = article.title,
-                content = article.content,
-                imgUrl = article.imgUrl,
-                articleUrl = article.linkUrl,
-                isFavorite = article.isFavorite,
-            )
+                LaunchedEffect(pagerState.currentPage) {
+                    viewModel.currentPage = pagerState.currentPage
+                }
 
+                VerticalPager(
+                    state = pagerState,
+                    modifier = Modifier
+                        .fillMaxSize(),
+                ) { page ->
+                    val wikiModel = wikiList[page]
+
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onDoubleTap = {
+                                        onDoubleTab(wikiModel)
+                                    })
+                            }) {
+                        WikiPage(
+                            title = wikiModel.title,
+                            content = wikiModel.content,
+                            imgUrl = wikiModel.imgUrl,
+                            linkUrl = wikiModel.linkUrl,
+                            isFavorite = wikiModel.isFavorite,
+                        )
+
+                    }
+                }
+
+            }
         }
     }
 }
 
 @Composable
-private fun FavoriteScreen(
-    viewModel: MainViewModel = koinViewModel(),
-) {
-    val favoriteList by viewModel.favoriteListState.collectAsStateWithLifecycle()
-    if (favoriteList.isEmpty()) {
-        EmptyScreen()
-        return
-    }
+private fun FavoriteScreen(favoriteUIState: UiState) {
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(8.dp)
-    ) {
-        items(favoriteList.size) { index ->
-            FavItem(
-                favoriteList[index],
-                modifier = Modifier.fillMaxWidth()
-            )
+    when (favoriteUIState) {
+        is UiState.Loading -> LoadingScreen()
+
+        is UiState.Error -> ErrorScreen()
+
+        is UiState.Success -> {
+            val favoriteList = favoriteUIState.wikiList
+            if (favoriteList.isEmpty()) {
+                EmptyScreen()
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(8.dp)
+                ) {
+                    items(favoriteList.size) { index ->
+                        FavItem(
+                            favoriteList[index],
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -236,7 +242,7 @@ private fun EmptyScreen() {
 }
 
 @Composable
-private fun ErrorScreen(errorMessage: String) {
+private fun ErrorScreen() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(stringResource(R.string.txt_feed_error))
     }

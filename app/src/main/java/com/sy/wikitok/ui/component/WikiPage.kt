@@ -42,7 +42,7 @@ fun WikiPage(
     title: String,
     content: String,
     imgUrl: String,
-    articleUrl: String,
+    linkUrl: String,
     isFavorite: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -79,7 +79,8 @@ fun WikiPage(
                     if (isFavorite){
                         Icon(
                             imageVector = IconFavorite,
-                            contentDescription = stringResource(R.string.desc_nav_favorite)
+                            contentDescription = stringResource(R.string.desc_nav_favorite),
+                            tint = Color.Red
                         )
                     }
                 }
@@ -100,7 +101,7 @@ fun WikiPage(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
-                            val uri = articleUrl.toUri().run {
+                            val uri = linkUrl.toUri().run {
                                 if (scheme.isNullOrBlank()) {
                                     buildUpon().scheme("https").build()
                                 } else {
@@ -125,7 +126,7 @@ fun PreviewWikiPage() {
             "标题",
             "内容".repeat(20),
             "",
-            articleUrl = "https://zh.wikipedia.org/wiki/示例页面",
+            linkUrl = "https://zh.wikipedia.org/wiki/示例页面",
             isFavorite = true
         )
     }

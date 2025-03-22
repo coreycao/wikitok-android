@@ -10,12 +10,12 @@ material = "1.12.0"
 avtivityCompose = "1.10.1"
 composeBom = "2025.03.00"
 coroutines = "1.10.1"
-ktorBom = "3.1.0"
+ktorBom = "3.1.1"
 lifecycleRuntimeKtx = "2.8.7"
 koin = "4.0.0"
 coil = "3.1.0"
 room = "2.6.1"
-ksp = "2.0.21-1.0.27"
+ksp = "2.0.21-1.0.28"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }

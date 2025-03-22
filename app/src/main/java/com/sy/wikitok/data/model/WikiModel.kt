@@ -6,12 +6,8 @@ import com.sy.wikitok.data.db.WikiEntity
 /**
  * @author Yeung
  * @date 2025/3/18
- *
- * Map WikiResponse to WikiArticle
- * WikiArticle is only used in view layer
- *
  */
-data class WikiArticle(
+data class WikiModel(
     val id: String,
     val title: String,
     val content: String,
@@ -20,8 +16,8 @@ data class WikiArticle(
     val isFavorite: Boolean = false
 )
 
-fun WikiEntity.toArticle(): WikiArticle = with(this) {
-    WikiArticle(
+fun WikiEntity.toWikiModel(): WikiModel = with(this) {
+    WikiModel(
         id = id,
         title = title,
         content = content,
@@ -31,7 +27,18 @@ fun WikiEntity.toArticle(): WikiArticle = with(this) {
     )
 }
 
-fun WikiArticle.toFeedEntity(): WikiEntity = with(this) {
+fun FavoriteEntity.toWikiModel(): WikiModel = with(this) {
+    WikiModel(
+        id = id,
+        title = title,
+        content = content,
+        imgUrl = imgUrl,
+        linkUrl = linkUrl,
+        isFavorite = true
+    )
+}
+
+fun WikiModel.toFeedEntity(): WikiEntity = with(this) {
     WikiEntity(
         id = id,
         title = title,
@@ -42,18 +49,7 @@ fun WikiArticle.toFeedEntity(): WikiEntity = with(this) {
     )
 }
 
-fun FavoriteEntity.toArticle(): WikiArticle = with(this) {
-    WikiArticle(
-        id = id,
-        title = title,
-        content = content,
-        imgUrl = imgUrl,
-        linkUrl = linkUrl,
-        isFavorite = true
-    )
-}
-
-fun WikiArticle.toFavoriteEntity(): FavoriteEntity = with(this) {
+fun WikiModel.toFavoriteEntity(): FavoriteEntity = with(this) {
     FavoriteEntity(
         id = id,
         title = title,

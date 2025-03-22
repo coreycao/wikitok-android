@@ -21,11 +21,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.sy.wikitok.R
-import com.sy.wikitok.data.model.WikiArticle
+import com.sy.wikitok.data.model.WikiModel
 
 /**
  * @author Yeung
@@ -33,7 +32,7 @@ import com.sy.wikitok.data.model.WikiArticle
  */
 
 @Composable
-fun FavItem(wikiArticle: WikiArticle, modifier: Modifier) {
+fun FavItem(wikiModel: WikiModel, modifier: Modifier) {
     val context = LocalContext.current
     Card(
         modifier = Modifier.padding(8.dp),
@@ -48,7 +47,7 @@ fun FavItem(wikiArticle: WikiArticle, modifier: Modifier) {
         ) {
 
             NetworkImage(
-                url = wikiArticle.imgUrl,
+                url = wikiModel.imgUrl,
                 contentDescription = stringResource(R.string.desc_fav_pic),
                 modifier = Modifier.size(48.dp),
                 contentScale = ContentScale.Crop,
@@ -57,7 +56,7 @@ fun FavItem(wikiArticle: WikiArticle, modifier: Modifier) {
 
             Column(modifier = Modifier.padding(start = 8.dp)) {
                 Text(
-                    text = wikiArticle.title,
+                    text = wikiModel.title,
                     style = MaterialTheme.typography.titleMedium,
                     color = Color.White,
                     maxLines = 1,
@@ -65,7 +64,7 @@ fun FavItem(wikiArticle: WikiArticle, modifier: Modifier) {
                 )
 
                 Text(
-                    text = wikiArticle.content,
+                    text = wikiModel.content,
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.White,
                     maxLines = 2,
@@ -79,7 +78,7 @@ fun FavItem(wikiArticle: WikiArticle, modifier: Modifier) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
-                            val uri = wikiArticle.linkUrl.toUri().run {
+                            val uri = wikiModel.linkUrl.toUri().run {
                                 if (scheme.isNullOrBlank()) {
                                     buildUpon().scheme("https").build()
                                 } else {
