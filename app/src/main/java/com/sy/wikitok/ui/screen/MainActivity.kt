@@ -14,6 +14,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -25,7 +28,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -38,11 +40,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sy.wikitok.R
 import com.sy.wikitok.data.model.WikiModel
 import com.sy.wikitok.ui.component.FavItem
-import com.sy.wikitok.ui.component.IconFavorite
-import com.sy.wikitok.ui.component.IconHome
 import com.sy.wikitok.ui.component.WikiPage
 import com.sy.wikitok.ui.screen.MainViewModel.UiState
 import com.sy.wikitok.ui.theme.WikiTokTheme
+import org.koin.androidx.compose.KoinAndroidContext
 import org.koin.androidx.compose.koinViewModel
 
 /**
@@ -60,19 +61,23 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            WikiTokTheme {
+            KoinAndroidContext {
+                WikiTokTheme {
 
-                val feedViewModel: FeedViewModel = koinViewModel()
-                val feedUIState by feedViewModel.uiState.collectAsStateWithLifecycle()
+                    val feedViewModel: FeedViewModel = koinViewModel()
+                    // val feedUIState by feedViewModel.uiState.collectAsStateWithLifecycle()
+                    val feedUIState by feedViewModel.feedUiState.collectAsStateWithLifecycle()
 
-                val favoriteViewModel: FavoriteViewModel = koinViewModel()
-                val favoriteUIState by favoriteViewModel.favorites.collectAsStateWithLifecycle()
+                    val favoriteViewModel: FavoriteViewModel = koinViewModel()
+                    val favoriteUIState by favoriteViewModel.favorites.collectAsStateWithLifecycle()
 
-                LaunchedEffect(key1 = Unit, block = {
-                    feedViewModel.loadWikiList()
-                })
+                    LaunchedEffect(key1 = Unit, block = {
+                        // feedViewModel.loadWikiList()
+                        feedViewModel.loadFeedData()
+                    })
 
-                HomeScaffold(feedUIState, favoriteUIState)
+                    HomeScaffold(feedUIState, favoriteUIState)
+                }
             }
         }
     }
@@ -81,6 +86,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun HomeScaffold(feedUIState: UiState, favoriteUIState: UiState) {
     val feedViewModel: FeedViewModel = koinViewModel()
+    val favoriteViewModel: FavoriteViewModel = koinViewModel()
 
     var currentRoute by rememberSaveable { mutableStateOf(ROUTE_FEED) }
 
@@ -92,7 +98,7 @@ private fun HomeScaffold(feedUIState: UiState, favoriteUIState: UiState) {
                     onClick = { currentRoute = ROUTE_FEED },
                     icon = {
                         Icon(
-                            imageVector = IconHome,
+                            imageVector = Icons.Filled.Home,
                             contentDescription = stringResource(R.string.desc_nav_feed)
                         )
                     }
@@ -103,7 +109,7 @@ private fun HomeScaffold(feedUIState: UiState, favoriteUIState: UiState) {
                     onClick = { currentRoute = ROUTE_FAVORITE },
                     icon = {
                         Icon(
-                            imageVector = IconFavorite,
+                            imageVector = Icons.Filled.Favorite,
                             contentDescription = stringResource(R.string.desc_nav_favorite)
                         )
                     }
@@ -132,7 +138,7 @@ private fun HomeScaffold(feedUIState: UiState, favoriteUIState: UiState) {
                             .fillMaxSize()
                             .padding(top = innerPadding.calculateTopPadding())
                     ) {
-                        FavoriteScreen(favoriteUIState)
+                        FavoriteScreen(favoriteUIState, favoriteViewModel::deleteFavorite)
                     }
             }
         }
@@ -197,7 +203,10 @@ private fun FeedScreen(
 }
 
 @Composable
-private fun FavoriteScreen(favoriteUIState: UiState) {
+private fun FavoriteScreen(
+    favoriteUIState: UiState,
+    onItemRemoved: (WikiModel) -> Unit,
+) {
 
     when (favoriteUIState) {
         is UiState.Loading -> LoadingScreen()
@@ -216,7 +225,8 @@ private fun FavoriteScreen(favoriteUIState: UiState) {
                     items(favoriteList.size) { index ->
                         FavItem(
                             favoriteList[index],
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            onDelete = onItemRemoved
                         )
                     }
                 }

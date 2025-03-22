@@ -10,9 +10,10 @@ import com.sy.wikitok.ui.screen.MainViewModel.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlin.collections.toList
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import com.sy.wikitok.data.repository.WikiRepository.RepoState
+import kotlinx.coroutines.flow.map
 
 /**
  * @author Yeung
@@ -23,72 +24,40 @@ class FeedViewModel(private val wikiRepository: WikiRepository) : ViewModel() {
     // keep view pager state
     var currentPage by mutableIntStateOf(0)
 
-    private val _uiState: MutableStateFlow<UiState> = MutableStateFlow(UiState.Loading)
-    val uiState = _uiState
+    private val _feedUiState: MutableStateFlow<UiState> = MutableStateFlow(UiState.Loading)
+    val feedUiState = _feedUiState
 
-    fun loadWikiList() {
+    init {
         viewModelScope.launch {
-            wikiRepository.getRemoteWikiList().fold(
-                onSuccess = { list ->
-                    Log.d("MainViewModel", "loadRemoteWikiList success, counts: ${list.size}")
-                    _uiState.update {
-                        if (list.isEmpty()) {
-                            UiState.Error("No data")
-                        } else {
-                            UiState.Success(list)
-                        }
+            wikiRepository.feedFlow.map {
+                when (it) {
+                    is RepoState.Success -> {
+                        UiState.Success(it.list)
                     }
-                    // cache to local db
-                    Log.d("MainViewModel", "saveWikiList to local db")
-                    wikiRepository.saveWikiList(list)
-                },
-                onFailure = { errorRemote ->
-                    Log.e("MainViewModel", "loadRemoteWikiList: ${errorRemote.message}")
-                    wikiRepository.getLocalWikiList().fold(
-                        onSuccess = { list ->
-                            Log.d(
-                                "MainViewModel",
-                                "loadLocalWikiList success, counts: ${list.size}"
-                            )
-                            _uiState.update {
-                                if (list.isEmpty()) {
-                                    UiState.Error("No data")
-                                } else {
-                                    UiState.Success(list)
-                                }
-                            }
-                        },
-                        onFailure = { errorLocal ->
-                            Log.e("MainViewModel", "loadLocalWikiList: ${errorLocal.message}")
-                            _uiState.update {
-                                UiState.Error(errorLocal.message ?: "Unknown Error")
-                            }
-                        }
-                    )
+                    is RepoState.Failure -> {
+                        UiState.Error(it.error)
+                    }
+                    is RepoState.Initial -> {
+                        UiState.Loading
+                    }
                 }
-            )
+            }.collect {
+                mappedState ->
+                    _feedUiState.update {
+                        mappedState
+                    }
+            }
         }
+    }
+
+    suspend fun loadFeedData() {
+        wikiRepository.loadFeedData()
     }
 
     fun onDoubleTab(wikiModel: WikiModel) {
         viewModelScope.launch {
-            val currentFeedList = (uiState.value as? UiState.Success)?.wikiList?.toMutableList()
-            currentFeedList?.find {
-                it.id == wikiModel.id
-            }?.let { item ->
-                wikiRepository.toggleFavorite(item)
-                val updatedWikiModel = item.copy(isFavorite = !item.isFavorite)
-                currentFeedList.replaceAll {
-                    if (it.id == updatedWikiModel.id) {
-                        updatedWikiModel
-                    } else {
-                        it
-                    }
-                }
-                _uiState.update {
-                    UiState.Success(currentFeedList.toList())
-                }
-            }
+            // toggle favorite
+            wikiRepository.toggleFavorite(wikiModel)
 
             if (wikiModel.isFavorite) {
                 // the item onTapped is already in the favorite list

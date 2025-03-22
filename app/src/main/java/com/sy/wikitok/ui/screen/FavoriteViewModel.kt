@@ -12,12 +12,19 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 /**
  * @author Yeung
  * @date 2025/3/22
  */
 class FavoriteViewModel(private val wikiRepo: WikiRepository) : ViewModel() {
+
+    fun deleteFavorite(wikiModel: WikiModel) {
+        viewModelScope.launch {
+            wikiRepo.removeFavAndUpdateFeed(wikiModel)
+        }
+    }
 
     val favorites = wikiRepo.favoriteUpdates
         .map { entities ->
