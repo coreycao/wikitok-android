@@ -4,12 +4,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.pager.VerticalPager
@@ -23,7 +23,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,13 +32,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sy.wikitok.R
 import com.sy.wikitok.data.model.WikiModel
 import com.sy.wikitok.ui.component.FavItem
+import com.sy.wikitok.ui.component.FullScreenImage
 import com.sy.wikitok.ui.component.WikiPage
 import com.sy.wikitok.ui.screen.MainViewModel.UiState
 import com.sy.wikitok.ui.theme.WikiTokTheme
@@ -72,7 +71,6 @@ class MainActivity : ComponentActivity() {
                     val favoriteUIState by favoriteViewModel.favorites.collectAsStateWithLifecycle()
 
                     LaunchedEffect(key1 = Unit, block = {
-                        // feedViewModel.loadWikiList()
                         feedViewModel.loadFeedData()
                     })
 
@@ -92,7 +90,7 @@ private fun HomeScaffold(feedUIState: UiState, favoriteUIState: UiState) {
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
+            NavigationBar(modifier = Modifier.height(96.dp)) {
                 NavigationBarItem(
                     selected = currentRoute == ROUTE_FEED,
                     onClick = { currentRoute = ROUTE_FEED },
@@ -102,7 +100,6 @@ private fun HomeScaffold(feedUIState: UiState, favoriteUIState: UiState) {
                             contentDescription = stringResource(R.string.desc_nav_feed)
                         )
                     }
-
                 )
                 NavigationBarItem(
                     selected = currentRoute == ROUTE_FAVORITE,
@@ -110,7 +107,7 @@ private fun HomeScaffold(feedUIState: UiState, favoriteUIState: UiState) {
                     icon = {
                         Icon(
                             imageVector = Icons.Filled.Favorite,
-                            contentDescription = stringResource(R.string.desc_nav_favorite)
+                            contentDescription = stringResource(R.string.desc_nav_favorite),
                         )
                     }
                 )
@@ -128,7 +125,7 @@ private fun HomeScaffold(feedUIState: UiState, favoriteUIState: UiState) {
                 ROUTE_FEED -> {
                     FeedScreen(
                         feedUIState,
-                        onDoubleTab = feedViewModel::onDoubleTab
+                        onFavoriteToggled = feedViewModel::onFavoriteToggled
                     )
                 }
 
@@ -138,17 +135,23 @@ private fun HomeScaffold(feedUIState: UiState, favoriteUIState: UiState) {
                             .fillMaxSize()
                             .padding(top = innerPadding.calculateTopPadding())
                     ) {
-                        FavoriteScreen(favoriteUIState, favoriteViewModel::deleteFavorite)
+
+                        FavoriteScreen(
+                            favoriteUIState,
+                            favoriteViewModel::deleteFavorite
+                        )
                     }
             }
         }
     }
 }
 
+
 @Composable
 private fun FeedScreen(
     feedUiState: UiState,
-    onDoubleTab: (WikiModel) -> Unit,
+    onFavoriteToggled: (WikiModel) -> Unit,
+    modifier: Modifier = Modifier
 ) {
 
     val viewModel: FeedViewModel = koinViewModel()
@@ -176,27 +179,17 @@ private fun FeedScreen(
                         .fillMaxSize(),
                 ) { page ->
                     val wikiModel = wikiList[page]
+                    WikiPage(
+                        wikiModel = wikiModel,
+                        onFavIconTapped = {
+                            onFavoriteToggled(wikiModel)
+                        },
+                        onDoubleTab = {
+                            onFavoriteToggled(wikiModel)
+                        }
+                    )
 
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .pointerInput(Unit) {
-                                detectTapGestures(
-                                    onDoubleTap = {
-                                        onDoubleTab(wikiModel)
-                                    })
-                            }) {
-                        WikiPage(
-                            title = wikiModel.title,
-                            content = wikiModel.content,
-                            imgUrl = wikiModel.imgUrl,
-                            linkUrl = wikiModel.linkUrl,
-                            isFavorite = wikiModel.isFavorite,
-                        )
-
-                    }
                 }
-
             }
         }
     }
@@ -207,7 +200,6 @@ private fun FavoriteScreen(
     favoriteUIState: UiState,
     onItemRemoved: (WikiModel) -> Unit,
 ) {
-
     when (favoriteUIState) {
         is UiState.Loading -> LoadingScreen()
 
@@ -218,17 +210,35 @@ private fun FavoriteScreen(
             if (favoriteList.isEmpty()) {
                 EmptyScreen()
             } else {
+                val fullScreenImageState = rememberSaveable { mutableStateOf(false) }
+                val fullScreenItem = rememberSaveable { mutableStateOf<WikiModel?>(null) }
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(8.dp)
                 ) {
-                    items(favoriteList.size) { index ->
+                    items(
+                        count = favoriteList.size,
+                        key = { index -> favoriteList[index].id }
+                    ) { index ->
                         FavItem(
                             favoriteList[index],
                             modifier = Modifier.fillMaxWidth(),
-                            onDelete = onItemRemoved
+                            onDelete = onItemRemoved,
+                            onImageTap = { wikiModel ->
+                                fullScreenImageState.value = true
+                                fullScreenItem.value = wikiModel
+                            }
                         )
                     }
+                }
+
+                if (fullScreenItem.value != null) {
+                    FullScreenImage(
+                        imgUrl = fullScreenItem.value!!.imgUrl,
+                        visible = fullScreenImageState.value,
+                        onClose = {
+                            fullScreenImageState.value = false
+                        })
                 }
             }
         }

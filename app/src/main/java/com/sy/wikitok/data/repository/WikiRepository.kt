@@ -1,6 +1,5 @@
 package com.sy.wikitok.data.repository
 
-import android.util.Log
 import com.sy.wikitok.data.db.FavoriteDao
 import com.sy.wikitok.data.db.FeedDao
 import com.sy.wikitok.data.model.WikiApiResponse
@@ -10,8 +9,10 @@ import com.sy.wikitok.data.model.toFavoriteEntity
 import com.sy.wikitok.data.model.toFeedEntity
 import com.sy.wikitok.data.repository.WikiRepository.RepoState.Initial
 import com.sy.wikitok.network.ApiService
+import com.sy.wikitok.utils.Logger
 import io.ktor.client.call.body
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 /**
@@ -30,29 +31,33 @@ class WikiRepository(
         data object Initial : RepoState()
     }
 
-    val feedFlow = MutableStateFlow<RepoState>(Initial)
+    private val _feedFlow = MutableStateFlow<RepoState>(Initial)
+
+    val feedFlow = _feedFlow.asStateFlow()
 
     val favoriteUpdates = favDao.observeFavorites()
 
     suspend fun loadFeedData() {
-        MockDataProvider().mockList().fold(
+//        MockDataProvider().mockList().fold(
+         getRemoteWikiList().fold(
             onSuccess = { list ->
-                feedFlow.update {
+                Logger.d("loadFeedData success: $list", tag = "WikiRepo")
+                _feedFlow.update {
                     RepoState.Success(list)
                 }
                 saveWikiList(list)
             },
             onFailure = { error ->
-                Log.e("WikiRepository", "loadFeedData: ${error.message}")
+                Logger.d("loadFeedData failed: ${error.message}", tag = "WikiRepo")
                 getLocalWikiList().fold(
                     onSuccess = { list ->
-                        feedFlow.update {
+                        _feedFlow.update {
                             RepoState.Success(list)
                         }
                     },
                     onFailure = { errorLocal ->
-                        Log.e("WikiRepository", "loadFeedData: ${errorLocal.message}")
-                        feedFlow.update {
+                        Logger.d(tag = "WikiRepo", message = "loadFeedData failed: ${errorLocal.message}")
+                        _feedFlow.update {
                             RepoState.Failure(errorLocal.message ?: "Unknown Error")
                         }
                     }
@@ -90,7 +95,7 @@ class WikiRepository(
     suspend fun toggleFavorite(wikiModel: WikiModel) {
         feedDao.updateFavorite(wikiModel.id, !wikiModel.isFavorite)
 
-        val currentFeedList = (feedFlow.value as? RepoState.Success)?.list?.toMutableList()
+        val currentFeedList = (_feedFlow.value as? RepoState.Success)?.list?.toMutableList()
         currentFeedList?.find {
             it.id == wikiModel.id
         }?.let { item ->
@@ -102,7 +107,7 @@ class WikiRepository(
                     it
                 }
             }
-            feedFlow.update {
+            _feedFlow.update {
                 RepoState.Success(currentFeedList.toList())
             }
         }
@@ -120,7 +125,7 @@ class WikiRepository(
         favDao.removeFavorite(wikiModel.id)
         feedDao.updateFavorite(wikiModel.id, false)
 
-        val currentFeedList = (feedFlow.value as? RepoState.Success)?.list?.toMutableList()
+        val currentFeedList = (_feedFlow.value as? RepoState.Success)?.list?.toMutableList()
         currentFeedList?.find {
             it.id == wikiModel.id
         }?.let { item ->
@@ -132,7 +137,7 @@ class WikiRepository(
                     it
                 }
             }
-            feedFlow.update {
+            _feedFlow.update {
                 RepoState.Success(currentFeedList.toList())
             }
         }

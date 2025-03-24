@@ -1,6 +1,5 @@
 package com.sy.wikitok.ui.screen
 
-import android.util.Log
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -13,6 +12,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import com.sy.wikitok.data.repository.WikiRepository.RepoState
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 
 /**
@@ -25,7 +25,7 @@ class FeedViewModel(private val wikiRepository: WikiRepository) : ViewModel() {
     var currentPage by mutableIntStateOf(0)
 
     private val _feedUiState: MutableStateFlow<UiState> = MutableStateFlow(UiState.Loading)
-    val feedUiState = _feedUiState
+    val feedUiState = _feedUiState.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -54,7 +54,7 @@ class FeedViewModel(private val wikiRepository: WikiRepository) : ViewModel() {
         wikiRepository.loadFeedData()
     }
 
-    fun onDoubleTab(wikiModel: WikiModel) {
+    fun onFavoriteToggled(wikiModel: WikiModel) {
         viewModelScope.launch {
             // toggle favorite
             wikiRepository.toggleFavorite(wikiModel)

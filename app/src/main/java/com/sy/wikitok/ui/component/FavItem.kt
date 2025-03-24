@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -29,7 +27,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
@@ -42,7 +39,10 @@ import com.sy.wikitok.data.model.WikiModel
  */
 
 @Composable
-fun FavItem(wikiModel: WikiModel, modifier: Modifier, onDelete: (WikiModel) -> Unit) {
+fun FavItem(wikiModel: WikiModel,
+            modifier: Modifier,
+            onImageTap: (WikiModel) -> Unit,
+            onDelete: (WikiModel) -> Unit) {
     val context = LocalContext.current
 
     val swipeBoxState = rememberSwipeToDismissBoxState()
@@ -50,7 +50,7 @@ fun FavItem(wikiModel: WikiModel, modifier: Modifier, onDelete: (WikiModel) -> U
     // 监听滑动状态
     LaunchedEffect(swipeBoxState.currentValue) {
         if (swipeBoxState.currentValue == SwipeToDismissBoxValue.EndToStart) {
-            onDelete(wikiModel)            // 触发删除回调
+            onDelete(wikiModel)      // 触发删除回调
             swipeBoxState.reset()    // 重置滑动状态
         }
     }
@@ -69,7 +69,7 @@ fun FavItem(wikiModel: WikiModel, modifier: Modifier, onDelete: (WikiModel) -> U
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete",
+                    contentDescription = stringResource(R.string.desc_nav_delete),
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
                         .padding(16.dp)
@@ -86,42 +86,23 @@ fun FavItem(wikiModel: WikiModel, modifier: Modifier, onDelete: (WikiModel) -> U
         ) {
             Row(
                 modifier = Modifier
-                    .padding(8.dp)
-                    .height(96.dp),
+                    .padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-
                 NetworkImage(
                     url = wikiModel.imgUrl,
                     contentDescription = stringResource(R.string.desc_fav_pic),
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clickable {
+                            onImageTap(wikiModel)
+                        },
                     contentScale = ContentScale.Crop,
                 )
-
-
-                Column(modifier = Modifier.padding(start = 8.dp)) {
-                    Text(
-                        text = wikiModel.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-
-                    Text(
-                        text = wikiModel.content,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-
-                    Text(
-                        text = stringResource(R.string.txt_read_more),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White,
-                        modifier = Modifier
-                            .fillMaxWidth()
+                Column(
+                    modifier =
+                        Modifier
+                            .padding(start = 8.dp)
                             .clickable {
                                 val uri = wikiModel.linkUrl.toUri().run {
                                     if (scheme.isNullOrBlank()) {
@@ -133,8 +114,20 @@ fun FavItem(wikiModel: WikiModel, modifier: Modifier, onDelete: (WikiModel) -> U
                                 context.startActivity(
                                     Intent(Intent.ACTION_VIEW, uri)
                                 )
-                            },
-                        textAlign = TextAlign.End
+                            }) {
+                    Text(
+                        text = wikiModel.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = wikiModel.content,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
