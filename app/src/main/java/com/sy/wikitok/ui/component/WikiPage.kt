@@ -58,7 +58,6 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun WikiPage(
-    modifier: Modifier = Modifier,
     wikiModel: WikiModel,
     onDoubleTab: (WikiModel) -> Unit = {},
     onFavIconTapped: (WikiModel) -> Unit = {},

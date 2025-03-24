@@ -39,11 +39,12 @@ import com.sy.wikitok.data.model.WikiModel
  */
 
 @Composable
-fun FavItem(wikiModel: WikiModel,
-            modifier: Modifier,
-            onImageTap: (WikiModel) -> Unit,
-            onDelete: (WikiModel) -> Unit) {
-    val context = LocalContext.current
+fun DismissFavItem(
+    wikiModel: WikiModel,
+    modifier: Modifier,
+    onImageTap: (WikiModel) -> Unit = {},
+    onDelete: (WikiModel) -> Unit = {}
+) {
 
     val swipeBoxState = rememberSwipeToDismissBoxState()
 
@@ -79,57 +80,67 @@ fun FavItem(wikiModel: WikiModel,
             }
         },
     ) {
-        Card(
-            modifier = Modifier.padding(8.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
-            shape = MaterialTheme.shapes.medium,
+        FavItem(wikiModel, modifier, onImageTap)
+    }
+}
+
+@Composable
+fun FavItem(
+    wikiModel: WikiModel,
+    modifier: Modifier,
+    onImageTap: (WikiModel) -> Unit = {}
+) {
+    val context = LocalContext.current
+    Card(
+        modifier = Modifier.padding(8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
+        shape = MaterialTheme.shapes.medium,
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
+            NetworkImage(
+                url = wikiModel.imgUrl,
+                contentDescription = stringResource(R.string.desc_fav_pic),
                 modifier = Modifier
-                    .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                NetworkImage(
-                    url = wikiModel.imgUrl,
-                    contentDescription = stringResource(R.string.desc_fav_pic),
-                    modifier = Modifier
-                        .size(56.dp)
+                    .size(56.dp)
+                    .clickable {
+                        onImageTap(wikiModel)
+                    },
+                contentScale = ContentScale.Crop,
+            )
+            Column(
+                modifier =
+                    Modifier
+                        .padding(start = 8.dp)
                         .clickable {
-                            onImageTap(wikiModel)
-                        },
-                    contentScale = ContentScale.Crop,
-                )
-                Column(
-                    modifier =
-                        Modifier
-                            .padding(start = 8.dp)
-                            .clickable {
-                                val uri = wikiModel.linkUrl.toUri().run {
-                                    if (scheme.isNullOrBlank()) {
-                                        buildUpon().scheme("https").build()
-                                    } else {
-                                        this
-                                    }
+                            val uri = wikiModel.linkUrl.toUri().run {
+                                if (scheme.isNullOrBlank()) {
+                                    buildUpon().scheme("https").build()
+                                } else {
+                                    this
                                 }
-                                context.startActivity(
-                                    Intent(Intent.ACTION_VIEW, uri)
-                                )
-                            }) {
-                    Text(
-                        text = wikiModel.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = wikiModel.content,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
+                            }
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, uri)
+                            )
+                        }) {
+                Text(
+                    text = wikiModel.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = wikiModel.content,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }

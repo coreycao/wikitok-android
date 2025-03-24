@@ -39,7 +39,7 @@ class WikiRepository(
 
     suspend fun loadFeedData() {
 //        MockDataProvider().mockList().fold(
-         getRemoteWikiList().fold(
+        getRemoteWikiList().fold(
             onSuccess = { list ->
                 Logger.d("loadFeedData success: $list", tag = "WikiRepo")
                 _feedFlow.update {
@@ -56,7 +56,10 @@ class WikiRepository(
                         }
                     },
                     onFailure = { errorLocal ->
-                        Logger.d(tag = "WikiRepo", message = "loadFeedData failed: ${errorLocal.message}")
+                        Logger.d(
+                            tag = "WikiRepo",
+                            message = "loadFeedData failed: ${errorLocal.message}"
+                        )
                         _feedFlow.update {
                             RepoState.Failure(errorLocal.message ?: "Unknown Error")
                         }
@@ -147,6 +150,14 @@ class WikiRepository(
     suspend fun getFavoriteList(): Result<List<WikiModel>> {
         return runCatching {
             favDao.readAllFavorites().map {
+                it.toWikiModel()
+            }
+        }
+    }
+
+    suspend fun searchFavorites(keyword: String): Result<List<WikiModel>> {
+        return runCatching {
+            favDao.searchFavoritesCaseInsensitive(keyword).map {
                 it.toWikiModel()
             }
         }

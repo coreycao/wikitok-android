@@ -1,5 +1,6 @@
 package com.sy.wikitok.data.db
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -11,6 +12,7 @@ import androidx.room.PrimaryKey
 data class FavoriteEntity(
     @PrimaryKey val id: String,
     val title: String,
+    @ColumnInfo(index = true)
     val content: String,
     val imgUrl: String,
     val linkUrl: String,
