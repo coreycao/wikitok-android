@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,6 +7,22 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.room)
+}
+
+val propertiesFile = rootProject.file("secret.properties")
+if (propertiesFile.exists()) {
+    val properties = Properties()
+    properties.load(propertiesFile.inputStream())
+
+    println("secret.properties found")
+
+    if (properties.containsKey("KEY_STORE_PATH")) {
+        println("release signing config: ${properties.getProperty("KEY_STORE_PATH")}")
+        project.extensions.extraProperties.set("RELEASE_STORE_FILE", properties.getProperty("KEY_STORE_PATH"))
+        project.extensions.extraProperties.set("RELEASE_STORE_PASSWORD", properties.getProperty("KEY_STORE_PASSWORD"))
+        project.extensions.extraProperties.set("RELEASE_KEY_ALIAS", properties.getProperty("KEY_ALIAS"))
+        project.extensions.extraProperties.set("RELEASE_KEY_PASSWORD", properties.getProperty("KEY_PASSWORD"))
+    }
 }
 
 android {
@@ -21,9 +39,23 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            println("release signing config: ${project.hasProperty("RELEASE_STORE_FILE")}")
+            if (project.hasProperty("RELEASE_STORE_FILE")) {
+                println("release signing config2: ${project.property("RELEASE_STORE_FILE") as String}")
+                storeFile = file(project.property("RELEASE_STORE_FILE") as String)
+                storePassword = project.property("RELEASE_STORE_PASSWORD") as String
+                keyAlias = project.property("RELEASE_KEY_ALIAS") as String
+                keyPassword = project.property("RELEASE_KEY_PASSWORD") as String
+            }
+        }
+    }
+
     buildTypes {
-        release {
-            isMinifyEnabled = false
+        getByName("release") {
+            isMinifyEnabled = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
