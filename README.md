@@ -8,7 +8,7 @@ Features are not ready, still working on it.
 
 ## Features
 
-- Tiktok style vertical scrolling feed of random Wikipedia articles. Tiktok style vertical scrolling feed of random Wikipedia articles.
+- Tiktok style vertical scrolling feed of random Wikipedia articles.
 - Double tap to save favorite Wiki aiticles which will only be persisted locally.
 - Search for favorite Wiki articles.
 
