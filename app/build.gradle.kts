@@ -58,6 +58,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.splash)
 
     // room
     implementation(libs.room.runtime)

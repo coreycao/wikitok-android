@@ -20,7 +20,7 @@
         <activity
             android:name=".ui.screen.MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.WikiTok">
+            android:theme="@style/Theme.AppSplash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

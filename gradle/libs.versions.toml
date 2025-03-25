@@ -7,6 +7,7 @@ junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 appcompat = "1.7.0"
 material = "1.12.0"
+splashscreen = "1.0.1"
 avtivityCompose = "1.10.1"
 composeBom = "2025.03.00"
 coroutines = "1.10.1"
@@ -31,6 +32,7 @@ androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-splash = { group = "androidx.core", name = "core-splashscreen", version.ref = "splashscreen" }
 
 # room
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
