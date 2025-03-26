@@ -28,7 +28,6 @@ android {
     signingConfigs {
         create("release") {
             if (project.hasProperty("RELEASE_STORE_FILE")) {
-                println("release signing config2: ${project.property("RELEASE_STORE_FILE") as String}")
                 storeFile = file(project.property("RELEASE_STORE_FILE") as String)
                 storePassword = project.property("RELEASE_STORE_PASSWORD") as String
                 keyAlias = project.property("RELEASE_KEY_ALIAS") as String
