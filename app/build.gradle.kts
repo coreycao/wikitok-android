@@ -1,4 +1,4 @@
-import java.util.Properties
+import com.android.build.gradle.internal.api.BaseVariantOutputImpl
 
 plugins {
     alias(libs.plugins.android.application)
@@ -9,21 +9,7 @@ plugins {
     alias(libs.plugins.room)
 }
 
-val propertiesFile = rootProject.file("secret.properties")
-if (propertiesFile.exists()) {
-    val properties = Properties()
-    properties.load(propertiesFile.inputStream())
-
-    println("secret.properties found")
-
-    if (properties.containsKey("KEY_STORE_PATH")) {
-        println("release signing config: ${properties.getProperty("KEY_STORE_PATH")}")
-        project.extensions.extraProperties.set("RELEASE_STORE_FILE", properties.getProperty("KEY_STORE_PATH"))
-        project.extensions.extraProperties.set("RELEASE_STORE_PASSWORD", properties.getProperty("KEY_STORE_PASSWORD"))
-        project.extensions.extraProperties.set("RELEASE_KEY_ALIAS", properties.getProperty("KEY_ALIAS"))
-        project.extensions.extraProperties.set("RELEASE_KEY_PASSWORD", properties.getProperty("KEY_PASSWORD"))
-    }
-}
+apply(from = "loadProperties.gradle.kts")
 
 android {
     namespace = "com.sy.wikitok"
@@ -41,7 +27,6 @@ android {
 
     signingConfigs {
         create("release") {
-            println("release signing config: ${project.hasProperty("RELEASE_STORE_FILE")}")
             if (project.hasProperty("RELEASE_STORE_FILE")) {
                 println("release signing config2: ${project.property("RELEASE_STORE_FILE") as String}")
                 storeFile = file(project.property("RELEASE_STORE_FILE") as String)
@@ -62,6 +47,17 @@ android {
             )
         }
     }
+
+    applicationVariants.all {
+        outputs.all {
+            if (this is BaseVariantOutputImpl) {
+                if (buildType.name == "release") {
+                    outputFileName = "wikitok-release.apk"
+                }
+            }
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
