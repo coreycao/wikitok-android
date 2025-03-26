@@ -2,9 +2,9 @@
 
 Android version of [wikitok](https://github.com/IsaacGemal/wikitok)
 
-A project to practice Android development.
+A personal project to practice Android development.
 
-Features are not ready, still working on it.
+Get an demo apk at the [release page](https://github.com/coreycao/wikitok-android/releases).
 
 ## Features
 
