@@ -48,9 +48,9 @@ class WikiRepository(
                 saveWikiList(list)
             },
             onFailure = { error ->
-                Logger.d("loadFeedData failed: ${error.message}", tag = "WikiRepo")
                 getLocalWikiList().fold(
                     onSuccess = { list ->
+                    Logger.d("loadLocalFeedData success: ${error.message}", tag = "WikiRepo")
                         _feedFlow.update {
                             RepoState.Success(list)
                         }
@@ -58,7 +58,7 @@ class WikiRepository(
                     onFailure = { errorLocal ->
                         Logger.d(
                             tag = "WikiRepo",
-                            message = "loadFeedData failed: ${errorLocal.message}"
+                            message = "loadLocalFeedData failed: ${errorLocal.message}"
                         )
                         _feedFlow.update {
                             RepoState.Failure(errorLocal.message ?: "Unknown Error")

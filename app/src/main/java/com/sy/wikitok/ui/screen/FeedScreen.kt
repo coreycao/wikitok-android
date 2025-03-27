@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sy.wikitok.ui.component.WikiPage
 import com.sy.wikitok.ui.screen.MainViewModel.UiState
+import com.sy.wikitok.utils.Logger
 import org.koin.androidx.compose.koinViewModel
 
 /**
@@ -21,11 +22,12 @@ fun FeedScreen() {
 
     val feedViewModel = koinViewModel<FeedViewModel>()
 
-    val feedUiState by feedViewModel.feedUiState.collectAsStateWithLifecycle()
-
-    LaunchedEffect(key1 = Unit, block = {
+    LaunchedEffect(Unit) {
+        Logger.d(tag = "FeedScreen", message = "loadFeedData")
         feedViewModel.loadFeedData()
-    })
+    }
+
+    val feedUiState by feedViewModel.feedUiState.collectAsStateWithLifecycle()
 
     when (feedUiState) {
         is UiState.Loading -> LoadingScreen()

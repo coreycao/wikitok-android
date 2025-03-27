@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import com.sy.wikitok.data.repository.WikiRepository.RepoState
+import com.sy.wikitok.utils.Logger
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 
@@ -28,30 +29,34 @@ class FeedViewModel(private val wikiRepository: WikiRepository) : ViewModel() {
     val feedUiState = _feedUiState.asStateFlow()
 
     init {
+        Logger.d(tag = "FeedViewModel", message = "init")
         viewModelScope.launch {
             wikiRepository.feedFlow.map {
                 when (it) {
                     is RepoState.Success -> {
                         UiState.Success(it.list)
                     }
+
                     is RepoState.Failure -> {
                         UiState.Error(it.error)
                     }
+
                     is RepoState.Initial -> {
                         UiState.Loading
                     }
                 }
-            }.collect {
-                mappedState ->
-                    _feedUiState.update {
-                        mappedState
-                    }
+            }.collect { mappedState ->
+                _feedUiState.update {
+                    mappedState
+                }
             }
         }
     }
 
-    suspend fun loadFeedData() {
-        wikiRepository.loadFeedData()
+    fun loadFeedData() {
+        viewModelScope.launch {
+            wikiRepository.loadFeedData()
+        }
     }
 
     fun onFavoriteToggled(wikiModel: WikiModel) {
