@@ -17,7 +17,6 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -26,11 +25,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sy.wikitok.R
 import com.sy.wikitok.ui.theme.WikiTokTheme
 import org.koin.androidx.compose.KoinAndroidContext
-import org.koin.androidx.compose.koinViewModel
 
 /**
  * @author Yeung
@@ -59,20 +56,8 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun HomeScaffold() {
-    val feedViewModel: FeedViewModel = koinViewModel()
-    val favoriteViewModel: FavoriteViewModel = koinViewModel()
-    val searchViewModel: SearchViewModel = koinViewModel()
-
-    val feedUIState by feedViewModel.feedUiState.collectAsStateWithLifecycle()
-    val favoriteUIState by favoriteViewModel.favorites.collectAsStateWithLifecycle()
-    val searchUIState by searchViewModel.searchResult.collectAsStateWithLifecycle()
-    val searchQuery by searchViewModel.searchQuery.collectAsStateWithLifecycle()
 
     var currentRoute by rememberSaveable { mutableStateOf(ROUTE_FEED) }
-
-    LaunchedEffect(key1 = Unit, block = {
-        feedViewModel.loadFeedData()
-    })
 
     Scaffold(
         bottomBar = {
@@ -109,10 +94,7 @@ private fun HomeScaffold() {
         ) {
             when (currentRoute) {
                 ROUTE_FEED -> {
-                    FeedScreen(
-                        feedUIState,
-                        onFavoriteToggled = feedViewModel::onFavoriteToggled
-                    )
+                    FeedScreen()
                 }
 
                 ROUTE_FAVORITE ->
@@ -121,13 +103,7 @@ private fun HomeScaffold() {
                             .fillMaxSize()
                             .padding(top = innerPadding.calculateTopPadding())
                     ) {
-                        FavoriteScreen(
-                            favoriteUIState = favoriteUIState,
-                            searchQuery = searchQuery,
-                            searchResultUIState = searchUIState,
-                            onItemRemoved = favoriteViewModel::deleteFavorite,
-                            onSearchQueryChanged = searchViewModel::onSearchQueryChanged
-                        )
+                        FavoriteScreen()
                     }
             }
         }

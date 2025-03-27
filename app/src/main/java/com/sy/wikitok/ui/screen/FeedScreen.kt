@@ -5,8 +5,9 @@ import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import com.sy.wikitok.data.model.WikiModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sy.wikitok.ui.component.WikiPage
 import com.sy.wikitok.ui.screen.MainViewModel.UiState
 import org.koin.androidx.compose.koinViewModel
@@ -16,27 +17,31 @@ import org.koin.androidx.compose.koinViewModel
  * @date 2025/3/24
  */
 @Composable
-fun FeedScreen(
-    feedUiState: UiState,
-    onFavoriteToggled: (WikiModel) -> Unit,
-) {
-    val viewModel: FeedViewModel = koinViewModel()
+fun FeedScreen() {
+
+    val feedViewModel = koinViewModel<FeedViewModel>()
+
+    val feedUiState by feedViewModel.feedUiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(key1 = Unit, block = {
+        feedViewModel.loadFeedData()
+    })
 
     when (feedUiState) {
         is UiState.Loading -> LoadingScreen()
         is UiState.Error -> ErrorScreen()
         is UiState.Success -> {
-            val wikiList = feedUiState.wikiList
+            val wikiList = (feedUiState as UiState.Success).wikiList
             if (wikiList.isEmpty()) {
                 EmptyScreen()
             } else {
 
-                val pagerState = rememberPagerState(initialPage = viewModel.currentPage) {
+                val pagerState = rememberPagerState(initialPage = feedViewModel.currentPage) {
                     wikiList.size
                 }
 
                 LaunchedEffect(pagerState.currentPage) {
-                    viewModel.currentPage = pagerState.currentPage
+                    feedViewModel.currentPage = pagerState.currentPage
                 }
 
                 VerticalPager(
@@ -48,10 +53,10 @@ fun FeedScreen(
                     WikiPage(
                         wikiModel = wikiModel,
                         onFavIconTapped = {
-                            onFavoriteToggled(wikiModel)
+                            feedViewModel.onFavoriteToggled(wikiModel)
                         },
                         onDoubleTab = {
-                            onFavoriteToggled(wikiModel)
+                            feedViewModel.onFavoriteToggled(wikiModel)
                         }
                     )
 
