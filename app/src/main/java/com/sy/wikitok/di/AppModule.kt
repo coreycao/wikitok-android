@@ -1,5 +1,7 @@
 package com.sy.wikitok.di
 
+import com.sy.wikitok.dataStore
+import org.koin.android.ext.koin.androidApplication
 import org.koin.dsl.module
 
 /**
@@ -8,6 +10,9 @@ import org.koin.dsl.module
  */
 
 val appModule = module {
+
+    single { androidApplication().dataStore }
+
     includes(
         networkModule,
         roomModule,

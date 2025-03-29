@@ -9,10 +9,6 @@ import io.ktor.client.request.get
  */
 class ApiService(private val httpClient: HttpClient) {
 
-    companion object {
-        private const val BASE_URL_WIKI = "https://zh.wikipedia.org/w/api.php"
-    }
-
     /**
      * 请求维基百科随机页面列表
      *
@@ -23,7 +19,7 @@ class ApiService(private val httpClient: HttpClient) {
      * - pithumbsize 实际可能返回接近但不超过指定尺寸的缩略图
      * - exintro 与 exsentences 配合使用可控制摘要长度
      */
-    suspend fun requestWikiList(count: Int = 20) = httpClient.get(BASE_URL_WIKI) {
+    suspend fun requestWikiList(api:String, count: Int = 20) = httpClient.get(api) {
         url {
             parameters.apply {
                 append("action", "query")      // 基础操作类型：数据查询

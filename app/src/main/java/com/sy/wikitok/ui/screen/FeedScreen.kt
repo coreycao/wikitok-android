@@ -6,6 +6,8 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sy.wikitok.ui.component.WikiPage
@@ -19,15 +21,17 @@ import org.koin.androidx.compose.koinViewModel
  */
 @Composable
 fun FeedScreen() {
-
     val feedViewModel = koinViewModel<FeedViewModel>()
+    val executed = rememberSaveable { mutableStateOf(false) }
+    val feedUiState by feedViewModel.feedUiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
-        Logger.d(tag = "FeedScreen", message = "loadFeedData")
-        feedViewModel.loadFeedData()
+        Logger.d(tag = "FeedScreen", message = "Launched ${executed.value}")
+        if (!executed.value) {
+            feedViewModel.loadFeedData()
+            executed.value = true
+        }
     }
-
-    val feedUiState by feedViewModel.feedUiState.collectAsStateWithLifecycle()
 
     when (feedUiState) {
         is UiState.Loading -> LoadingScreen()
@@ -48,8 +52,7 @@ fun FeedScreen() {
 
                 VerticalPager(
                     state = pagerState,
-                    modifier = Modifier
-                        .fillMaxSize(),
+                    modifier = Modifier.fillMaxSize(),
                 ) { page ->
                     val wikiModel = wikiList[page]
                     WikiPage(

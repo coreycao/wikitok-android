@@ -87,6 +87,8 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.splash)
+    implementation(libs.androidx.datastore)
+    implementation(libs.androidx.datastore.preferences)
 
     // room
     implementation(libs.room.runtime)
@@ -116,6 +118,7 @@ dependencies {
     // Coil
     implementation(libs.coil.compose)
     implementation(libs.coil.network)
+    implementation(libs.coil.svg)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

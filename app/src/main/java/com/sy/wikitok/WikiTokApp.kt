@@ -1,6 +1,9 @@
 package com.sy.wikitok
 
 import android.app.Application
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStore
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import coil3.request.crossfade
@@ -15,6 +18,10 @@ import org.koin.core.context.startKoin
  * @author Yeung
  * @date 2025/3/18
  */
+
+private const val SETTINGS_NAME = "settings"
+val Application.dataStore: DataStore<Preferences> by preferencesDataStore(name = SETTINGS_NAME)
+
 class WikiTokApp : Application() {
     override fun onCreate() {
         super.onCreate()

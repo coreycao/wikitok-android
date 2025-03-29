@@ -1,5 +1,11 @@
 package com.sy.wikitok.data.repository
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import com.sy.wikitok.data.Langs
+import com.sy.wikitok.data.Language
 import com.sy.wikitok.data.db.FavoriteDao
 import com.sy.wikitok.data.db.FeedDao
 import com.sy.wikitok.data.model.WikiApiResponse
@@ -11,8 +17,11 @@ import com.sy.wikitok.data.repository.WikiRepository.RepoState.Initial
 import com.sy.wikitok.network.ApiService
 import com.sy.wikitok.utils.Logger
 import io.ktor.client.call.body
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 
 /**
@@ -21,6 +30,7 @@ import kotlinx.coroutines.flow.update
  */
 class WikiRepository(
     private val apiService: ApiService,
+    private val dataStore: DataStore<Preferences>,
     private val feedDao: FeedDao,
     private val favDao: FavoriteDao
 ) {
@@ -31,47 +41,72 @@ class WikiRepository(
         data object Initial : RepoState()
     }
 
+    private val KEY_LANG = stringPreferencesKey("lang")
+    val DEFAULT_LANG = "en"
+
     private val _feedFlow = MutableStateFlow<RepoState>(Initial)
 
     val feedFlow = _feedFlow.asStateFlow()
 
     val favoriteUpdates = favDao.observeFavorites()
 
-    suspend fun loadFeedData() {
-//        MockDataProvider().mockList().fold(
-        getRemoteWikiList().fold(
-            onSuccess = { list ->
-                Logger.d("loadFeedData success: $list", tag = "WikiRepo")
-                _feedFlow.update {
-                    RepoState.Success(list)
-                }
-                saveWikiList(list)
-            },
-            onFailure = { error ->
-                getLocalWikiList().fold(
-                    onSuccess = { list ->
-                    Logger.d("loadLocalFeedData success: ${error.message}", tag = "WikiRepo")
-                        _feedFlow.update {
-                            RepoState.Success(list)
-                        }
-                    },
-                    onFailure = { errorLocal ->
-                        Logger.d(
-                            tag = "WikiRepo",
-                            message = "loadLocalFeedData failed: ${errorLocal.message}"
-                        )
-                        _feedFlow.update {
-                            RepoState.Failure(errorLocal.message ?: "Unknown Error")
-                        }
-                    }
-                )
-            }
-        )
+    fun currentLang(): Flow<Language> {
+        return dataStore.data.map { preference ->
+            val currentLang = preference[KEY_LANG] ?: DEFAULT_LANG
+            Langs[currentLang]!!
+        }
     }
 
-    suspend fun getRemoteWikiList(): Result<List<WikiModel>> {
+    suspend fun changeLanguage(lang: Language) {
+        _feedFlow.update {
+            Initial
+        }
+        dataStore.edit { preference ->
+            preference[KEY_LANG] = lang.id
+        }
+    }
+
+    suspend fun loadFeedData() {
+        dataStore.data.map { preference ->
+            val lang = preference[KEY_LANG] ?: DEFAULT_LANG
+            val api = Langs[lang]?.api!!
+            getRemoteWikiList(api).fold(
+                onSuccess = { list ->
+                    Logger.d("loadFeedData success: $list", tag = "WikiRepo")
+                    _feedFlow.update {
+                        RepoState.Success(list)
+                    }
+                    saveWikiList(list)
+                },
+                onFailure = { error ->
+                    getLocalWikiList().fold(
+                        onSuccess = { list ->
+                            Logger.d(
+                                "loadLocalFeedData success: ${error.message}",
+                                tag = "WikiRepo"
+                            )
+                            _feedFlow.update {
+                                RepoState.Success(list)
+                            }
+                        },
+                        onFailure = { errorLocal ->
+                            Logger.d(
+                                tag = "WikiRepo",
+                                message = "loadLocalFeedData failed: ${errorLocal.message}"
+                            )
+                            _feedFlow.update {
+                                RepoState.Failure(errorLocal.message ?: "Unknown Error")
+                            }
+                        }
+                    )
+                }
+            )
+        }.collect()
+    }
+
+    suspend fun getRemoteWikiList(api: String): Result<List<WikiModel>> {
         return runCatching {
-            apiService.requestWikiList()
+            apiService.requestWikiList(api)
                 .body<WikiApiResponse>()
                 .query.pages.filter {
                     it.value.thumbnail != null
@@ -144,7 +179,6 @@ class WikiRepository(
                 RepoState.Success(currentFeedList.toList())
             }
         }
-
     }
 
     suspend fun getFavoriteList(): Result<List<WikiModel>> {

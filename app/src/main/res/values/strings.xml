@@ -3,6 +3,7 @@
 
     <string name="desc_nav_feed">首页</string>
     <string name="desc_nav_favorite">收藏</string>
+    <string name="desc_nav_setting">设置</string>
     <string name="desc_nav_share">分享</string>
     <string name="desc_nav_delete">删除</string>
     <string name="desc_feed_bg">首页背景图</string>

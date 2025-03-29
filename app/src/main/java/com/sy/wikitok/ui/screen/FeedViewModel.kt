@@ -42,6 +42,7 @@ class FeedViewModel(private val wikiRepository: WikiRepository) : ViewModel() {
                     }
 
                     is RepoState.Initial -> {
+                        currentPage = 0
                         UiState.Loading
                     }
                 }
