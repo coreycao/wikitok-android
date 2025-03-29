@@ -2,5 +2,6 @@
 <resources>
     <style name="Theme.AppSplash" parent="Theme.SplashScreen">
         <item name="postSplashScreenTheme">@style/Theme.WikiTok</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher</item>
     </style>
 </resources>
