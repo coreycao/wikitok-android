@@ -41,7 +41,7 @@ import com.sy.wikitok.data.model.WikiModel
 @Composable
 fun DismissFavItem(
     wikiModel: WikiModel,
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
     onImageTap: (WikiModel) -> Unit = {},
     onDelete: (WikiModel) -> Unit = {}
 ) {
@@ -87,7 +87,7 @@ fun DismissFavItem(
 @Composable
 fun FavItem(
     wikiModel: WikiModel,
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
     onImageTap: (WikiModel) -> Unit = {}
 ) {
     val context = LocalContext.current

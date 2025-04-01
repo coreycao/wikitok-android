@@ -1,11 +1,5 @@
 package com.sy.wikitok.data.repository
 
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
-import com.sy.wikitok.data.Langs
-import com.sy.wikitok.data.Language
 import com.sy.wikitok.data.db.FavoriteDao
 import com.sy.wikitok.data.db.FeedDao
 import com.sy.wikitok.data.model.WikiApiResponse
@@ -13,16 +7,15 @@ import com.sy.wikitok.data.model.WikiModel
 import com.sy.wikitok.data.model.toWikiModel
 import com.sy.wikitok.data.model.toFavoriteEntity
 import com.sy.wikitok.data.model.toFeedEntity
-import com.sy.wikitok.data.repository.WikiRepository.RepoState.Initial
 import com.sy.wikitok.network.ApiService
 import com.sy.wikitok.utils.Logger
 import io.ktor.client.call.body
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
+import io.ktor.client.statement.HttpResponse
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.onStart
 
 /**
  * @author Yeung
@@ -30,7 +23,7 @@ import kotlinx.coroutines.flow.update
  */
 class WikiRepository(
     private val apiService: ApiService,
-    private val dataStore: DataStore<Preferences>,
+    private val userRepository: UserRepository,
     private val feedDao: FeedDao,
     private val favDao: FavoriteDao
 ) {
@@ -41,79 +34,67 @@ class WikiRepository(
         data object Initial : RepoState()
     }
 
-    private val KEY_LANG = stringPreferencesKey("lang")
-    val DEFAULT_LANG = "en"
-
-    private val _feedFlow = MutableStateFlow<RepoState>(Initial)
-
-    val feedFlow = _feedFlow.asStateFlow()
-
-    val favoriteUpdates = favDao.observeFavorites()
-
-    fun currentLang(): Flow<Language> {
-        return dataStore.data.map { preference ->
-            val currentLang = preference[KEY_LANG] ?: DEFAULT_LANG
-            Langs[currentLang]!!
+    val favoriteUpdates = favDao.observeFavorites().map { entities ->
+        entities.map { entity ->
+            entity.toWikiModel()
         }
     }
 
-    suspend fun changeLanguage(lang: Language) {
-        _feedFlow.update {
-            Initial
-        }
-        dataStore.edit { preference ->
-            preference[KEY_LANG] = lang.id
-        }
-    }
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val observableWikiRepo = userRepository.observeLanguageSetting()
+        .flatMapLatest { lang ->
+            Logger.d("getFeedFlow lang: ${lang.name}", tag = "WikiRepo")
 
-    suspend fun loadFeedData() {
-        dataStore.data.map { preference ->
-            val lang = preference[KEY_LANG] ?: DEFAULT_LANG
-            val api = Langs[lang]?.api!!
-            getRemoteWikiList(api).fold(
-                onSuccess = { list ->
-                    Logger.d("loadFeedData success: $list", tag = "WikiRepo")
-                    _feedFlow.update {
+            // TODO: merge fav status with local fav list.
+            apiService.observerWikiList(lang.api)
+                .map<Result<HttpResponse>, RepoState> { result ->
+                    if (result.isSuccess) {
+                        // request success, parse exception may happen here
+                        Logger.d("getRemoteFeed success", tag = "WikiRepo")
+                        val list = result.getOrThrow().toWikiModelList()
+                        // trigger DB flow
+                        saveWikiList(list)
                         RepoState.Success(list)
-                    }
-                    saveWikiList(list)
-                },
-                onFailure = { error ->
-                    getLocalWikiList().fold(
-                        onSuccess = { list ->
-                            Logger.d(
-                                "loadLocalFeedData success: ${error.message}",
-                                tag = "WikiRepo"
-                            )
-                            _feedFlow.update {
-                                RepoState.Success(list)
-                            }
-                        },
-                        onFailure = { errorLocal ->
-                            Logger.d(
-                                tag = "WikiRepo",
-                                message = "loadLocalFeedData failed: ${errorLocal.message}"
-                            )
-                            _feedFlow.update {
-                                RepoState.Failure(errorLocal.message ?: "Unknown Error")
-                            }
+                    } else {
+                        // local data my be empty
+                        Logger.d(
+                            tag = "WikiRepo",
+                            message = "getFeedFlow failed: ${result.exceptionOrNull()?.message}"
+                        )
+                        val localFeedData = feedDao.readFeeds().map {
+                            it.toWikiModel()
                         }
-                    )
+                        Logger.d(
+                            tag = "WikiRepo",
+                            message = "getLocalFeed success, count: ${localFeedData.size}"
+                        )
+                        RepoState.Success(localFeedData)
+                    }
+
+                }.onStart {
+                    emit(RepoState.Initial)
                 }
+        }.catch { error ->
+            Logger.d(
+                tag = "WikiRepo",
+                message = "getFeedFlow catch: ${error.message}"
             )
-        }.collect()
+            emit(RepoState.Failure(error.message ?: "Unknown Error"))
+        }
+
+
+    private suspend fun HttpResponse.toWikiModelList(): List<WikiModel> {
+        return this.body<WikiApiResponse>()
+            .query.pages
+            .filter { it.value.thumbnail != null }
+            .map { it.value.toWikiModel() }
     }
 
-    suspend fun getRemoteWikiList(api: String): Result<List<WikiModel>> {
-        return runCatching {
-            apiService.requestWikiList(api)
-                .body<WikiApiResponse>()
-                .query.pages.filter {
-                    it.value.thumbnail != null
-                }.map {
-                    it.value.toWikiModel()
-                }
-        }
+    private suspend fun WikiApiResponse.toWikiModelList(): List<WikiModel> {
+        return this
+            .query.pages
+            .filter { it.value.thumbnail != null }
+            .map { it.value.toWikiModel() }
     }
 
     suspend fun saveWikiList(list: List<WikiModel>) {
@@ -122,32 +103,9 @@ class WikiRepository(
         })
     }
 
-    suspend fun getLocalWikiList(): Result<List<WikiModel>> {
-        return runCatching {
-            feedDao.readFeeds().map {
-                it.toWikiModel()
-            }
-        }
-    }
-
-    suspend fun toggleFavorite(wikiModel: WikiModel) {
-        feedDao.updateFavorite(wikiModel.id, !wikiModel.isFavorite)
-
-        val currentFeedList = (_feedFlow.value as? RepoState.Success)?.list?.toMutableList()
-        currentFeedList?.find {
-            it.id == wikiModel.id
-        }?.let { item ->
-            val updatedWikiModel = item.copy(isFavorite = !item.isFavorite)
-            currentFeedList.replaceAll {
-                if (it.id == updatedWikiModel.id) {
-                    updatedWikiModel
-                } else {
-                    it
-                }
-            }
-            _feedFlow.update {
-                RepoState.Success(currentFeedList.toList())
-            }
+    suspend fun toggleFavorite(wikiModel: WikiModel): List<WikiModel> {
+        return feedDao.updateGetFavorite(wikiModel.id, !wikiModel.isFavorite).map {
+            it.toWikiModel()
         }
     }
 
@@ -161,39 +119,14 @@ class WikiRepository(
 
     suspend fun removeFavAndUpdateFeed(wikiModel: WikiModel) {
         favDao.removeFavorite(wikiModel.id)
+        // TODO: notify feed list to update
         feedDao.updateFavorite(wikiModel.id, false)
-
-        val currentFeedList = (_feedFlow.value as? RepoState.Success)?.list?.toMutableList()
-        currentFeedList?.find {
-            it.id == wikiModel.id
-        }?.let { item ->
-            val updatedWikiModel = item.copy(isFavorite = false)
-            currentFeedList.replaceAll {
-                if (it.id == updatedWikiModel.id) {
-                    updatedWikiModel
-                } else {
-                    it
-                }
-            }
-            _feedFlow.update {
-                RepoState.Success(currentFeedList.toList())
-            }
-        }
     }
 
-    suspend fun getFavoriteList(): Result<List<WikiModel>> {
-        return runCatching {
-            favDao.readAllFavorites().map {
-                it.toWikiModel()
+    fun observerSearchResult(keyword: String) =
+        favDao.observerFavoritesCaseInsensitive(keyword).map { entities ->
+            entities.map { entity ->
+                entity.toWikiModel()
             }
         }
-    }
-
-    suspend fun searchFavorites(keyword: String): Result<List<WikiModel>> {
-        return runCatching {
-            favDao.searchFavoritesCaseInsensitive(keyword).map {
-                it.toWikiModel()
-            }
-        }
-    }
 }

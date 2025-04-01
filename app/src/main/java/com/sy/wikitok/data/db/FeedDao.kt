@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
+import kotlinx.coroutines.flow.Flow
 
 /**
  * @author Yeung
@@ -19,6 +20,9 @@ interface FeedDao {
     @Query("SELECT * FROM tb_feeds ORDER BY timestamp DESC")
     suspend fun readFeeds(): List<WikiEntity>
 
+    @Query("SELECT * FROM tb_feeds ORDER BY timestamp DESC")
+    fun observerFeeds(): Flow<List<WikiEntity>>
+
     @Query("DELETE FROM tb_feeds")
     suspend fun deleteAll()
 
@@ -30,4 +34,10 @@ interface FeedDao {
 
     @Query("UPDATE tb_feeds SET isFavorite = :isFavorite WHERE id = :id")
     suspend fun updateFavorite(id: String, isFavorite: Boolean)
+
+    @Transaction
+    suspend fun updateGetFavorite(id: String, isFavorite: Boolean) : List<WikiEntity>{
+        updateFavorite(id, isFavorite)
+        return readFeeds()
+    }
 }

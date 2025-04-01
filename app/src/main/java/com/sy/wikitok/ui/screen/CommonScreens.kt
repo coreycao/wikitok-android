@@ -33,8 +33,8 @@ fun EmptyScreen(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun ErrorScreen(modifier: Modifier = Modifier) {
+fun ErrorScreen(modifier: Modifier = Modifier, errorMessage: String? = null) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(stringResource(R.string.txt_feed_error))
+        Text(text = errorMessage ?: stringResource(R.string.txt_feed_error))
     }
 }

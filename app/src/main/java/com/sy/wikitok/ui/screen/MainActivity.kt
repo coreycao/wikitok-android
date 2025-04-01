@@ -105,16 +105,24 @@ private fun HomeScaffold() {
 
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val mainViewModel: MainViewModel = koinViewModel()
+    val mainViewModel = koinViewModel<MainViewModel>()
+
+    val feedViewModel = koinViewModel<FeedViewModel>()
 
     LaunchedEffect(Unit) {
-        Logger.d(tag = "MainActivity", message = "loadFeedData")
+        Logger.d(tag = "MainActivity", message = "observerSnakeBarEvent")
 
         mainViewModel.snakebarEvent
             .debounce(300)
             .collect {
-            snackbarHostState.showSnackbar(it.message)
-        }
+                snackbarHostState.showSnackbar(it.message)
+            }
+
+    }
+
+    LaunchedEffect(Unit) {
+        Logger.d(tag = "MainActivity", message = "initFeedData")
+        feedViewModel.initFeedData()
     }
 
     Scaffold(
@@ -156,7 +164,7 @@ private fun HomeScaffold() {
         ) {
 
             composable(ROUTE_FEED) {
-                FeedScreen()
+                FeedScreen(feedViewModel)
             }
 
             composable(ROUTE_FAVORITE) {

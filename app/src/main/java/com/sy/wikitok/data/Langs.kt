@@ -5,6 +5,15 @@ package com.sy.wikitok.data
  * @date 2025/3/29
  */
 
+const val DEFAULT_LANG_ID = "zh-cn"
+
+val DEFAULT_LANGUAGE = Language(
+    "zh-cn",
+    "中文（中国大陆）",
+    "https://hatscripts.github.io/circle-flags/flags/cn.svg",
+    "https://zh.wikipedia.org/w/api.php"
+)
+
 data class Language(val id: String, val name: String, val flag: String, val api: String)
 
 val Langs = mapOf(

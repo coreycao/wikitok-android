@@ -27,13 +27,6 @@ interface FavoriteDao {
     @Query("SELECT * FROM tb_favorites WHERE content LIKE '%' || :keyword || '%' COLLATE NOCASE ORDER BY timestamp DESC")
     suspend fun searchFavoritesCaseInsensitive(keyword: String): List<FavoriteEntity>
 
-    @Query("SELECT * FROM tb_favorites WHERE content LIKE '%' || :keyword || '%' ORDER BY timestamp DESC LIMIT :pageSize OFFSET :offset")
-    suspend fun searchFavoritesPaged(
-        keyword: String,
-        pageSize: Int,
-        offset: Int
-    ): List<FavoriteEntity>
-
-    @Query("SELECT * FROM tb_favorites WHERE content LIKE '%' || :keyword || '%' ORDER BY timestamp DESC")
-    suspend fun searchFavorites(keyword: String): List<FavoriteEntity>
+    @Query("SELECT * FROM tb_favorites WHERE content LIKE '%' || :keyword || '%' COLLATE NOCASE ORDER BY timestamp DESC")
+    fun observerFavoritesCaseInsensitive(keyword: String): Flow<List<FavoriteEntity>>
 }

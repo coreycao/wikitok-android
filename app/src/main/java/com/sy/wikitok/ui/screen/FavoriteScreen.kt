@@ -36,7 +36,7 @@ import com.sy.wikitok.data.model.WikiModel
 import com.sy.wikitok.ui.component.DismissFavItem
 import com.sy.wikitok.ui.component.FavItem
 import com.sy.wikitok.ui.component.FullScreenImage
-import com.sy.wikitok.ui.screen.MainViewModel.UiState
+import com.sy.wikitok.ui.screen.FavoriteViewModel.UiState
 import com.sy.wikitok.utils.Logger
 import org.koin.androidx.compose.koinViewModel
 
@@ -56,15 +56,13 @@ fun FavoriteScreen() {
     when (favoriteUIState) {
         is UiState.Loading -> LoadingScreen()
         is UiState.Error -> ErrorScreen()
+        is UiState.Empty -> EmptyScreen()
         is UiState.Success -> {
             val favoriteList = (favoriteUIState as UiState.Success).wikiList
-            if (favoriteList.isEmpty()) {
-                EmptyScreen()
-            } else {
-                SearchScreen(
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
+            SearchScreen(
+                modifier = Modifier.fillMaxSize(),
+                favoriteList = favoriteList
+            )
         }
     }
 }
@@ -113,17 +111,15 @@ fun FavoriteListScreen(
 @Composable
 fun SearchScreen(
     modifier: Modifier = Modifier,
+    favoriteList: List<WikiModel>
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
 
     val favoriteViewModel = koinViewModel<FavoriteViewModel>()
 
-    val favoriteUIState by favoriteViewModel.favorites.collectAsStateWithLifecycle()
     val searchUiState by favoriteViewModel.searchResult.collectAsStateWithLifecycle()
     val searchQuery by favoriteViewModel.searchQuery.collectAsStateWithLifecycle()
     val isSearching by favoriteViewModel.isSearching.collectAsStateWithLifecycle()
-
-    val favoriteList = (favoriteUIState as UiState.Success).wikiList
 
     Box(
         modifier = modifier
@@ -191,27 +187,27 @@ fun SearchScreen(
             },
         ) {
             when (searchUiState) {
-                is MainViewModel.UiState.Success -> {
-                    val searchResultList = (searchUiState as UiState.Success).wikiList
-                    if (searchResultList.isEmpty()) {
-                        EmptyScreen(
-                            modifier = Modifier.clickable(
-                                onClick = {
-                                    Logger.d(
-                                        tag = "SearchResultContent#EmptyScreen",
-                                        message = "onClick"
-                                    )
-                                    favoriteViewModel.toggleSearchBar(false)
-                                }
-                            ))
-                    } else {
-                        SearchResultContent(
-                            favoriteList = searchResultList
-                        )
-                    }
+                is UiState.Empty -> {
+                    EmptyScreen(
+                        modifier = Modifier.clickable(
+                            onClick = {
+                                Logger.d(
+                                    tag = "SearchResultContent#EmptyScreen",
+                                    message = "onClick"
+                                )
+                                favoriteViewModel.toggleSearchBar(false)
+                            }
+                        ))
                 }
 
-                is MainViewModel.UiState.Error -> {
+                is UiState.Success -> {
+                    val searchResultList = (searchUiState as UiState.Success).wikiList
+                    SearchResultContent(
+                        favoriteList = searchResultList
+                    )
+                }
+
+                is UiState.Error -> {
                     ErrorScreen(
                         modifier = Modifier.clickable(
                             onClick = {
@@ -224,7 +220,7 @@ fun SearchScreen(
                         ))
                 }
 
-                is MainViewModel.UiState.Loading -> {
+                is UiState.Loading -> {
                     LoadingScreen()
                 }
             }

@@ -5,16 +5,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sy.wikitok.data.model.WikiModel
 import com.sy.wikitok.data.repository.WikiRepository
-import com.sy.wikitok.ui.screen.MainViewModel.UiState
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import com.sy.wikitok.data.repository.WikiRepository.RepoState
 import com.sy.wikitok.utils.Logger
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 
 /**
  * @author Yeung
@@ -25,45 +26,59 @@ class FeedViewModel(private val wikiRepository: WikiRepository) : ViewModel() {
     // keep view pager state
     var currentPage by mutableIntStateOf(0)
 
-    private val _feedUiState: MutableStateFlow<UiState> = MutableStateFlow(UiState.Loading)
+    sealed class UiState {
+        data class Success(val wikiList: List<WikiModel>) : UiState()
+        data class Error(val message: String) : UiState()
+        data object Loading : UiState()
+        data object Empty : UiState()
+    }
+
+    fun initFeedData() {
+        viewModelScope.launch {
+            Logger.d(tag = "FeedViewModel", message = "initFeedData")
+            _wikiRepoState.collect()
+        }
+    }
+
+    private val _feedUiState = MutableStateFlow<UiState>(UiState.Loading)
     val feedUiState = _feedUiState.asStateFlow()
 
-    init {
-        Logger.d(tag = "FeedViewModel", message = "init")
-        viewModelScope.launch {
-            wikiRepository.feedFlow.map {
-                when (it) {
-                    is RepoState.Success -> {
-                        UiState.Success(it.list)
-                    }
-
-                    is RepoState.Failure -> {
-                        UiState.Error(it.error)
-                    }
-
-                    is RepoState.Initial -> {
-                        currentPage = 0
-                        UiState.Loading
+    private val _wikiRepoState = wikiRepository.observableWikiRepo
+        .map<RepoState, Unit> { state ->
+            return@map when (state) {
+                is RepoState.Success -> {
+                    Logger.d(
+                        tag = "FeedViewModel",
+                        message = "feed: success, count: ${state.list.size}"
+                    )
+                    if (state.list.isEmpty()) {
+                        _feedUiState.value = UiState.Empty
+                    } else {
+                        _feedUiState.value = UiState.Success(state.list)
                     }
                 }
-            }.collect { mappedState ->
-                _feedUiState.update {
-                    mappedState
+
+                is RepoState.Failure -> {
+                    Logger.e("FeedViewModel", "feed: ${state.error}")
+                    _feedUiState.value = UiState.Error(state.error)
+                }
+
+                is RepoState.Initial -> {
+                    Logger.d(tag = "FeedViewModel", message = "feed: initial")
+                    _feedUiState.value = UiState.Loading
                 }
             }
-        }
-    }
-
-    fun loadFeedData() {
-        viewModelScope.launch {
-            wikiRepository.loadFeedData()
-        }
-    }
+        }.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(stopTimeoutMillis = 5000),
+            UiState.Loading
+        )
 
     fun onFavoriteToggled(wikiModel: WikiModel) {
         viewModelScope.launch {
             // toggle favorite
-            wikiRepository.toggleFavorite(wikiModel)
+            val updatedList = wikiRepository.toggleFavorite(wikiModel)
+            _feedUiState.value = UiState.Success(updatedList)
 
             if (wikiModel.isFavorite) {
                 // the item onTapped is already in the favorite list

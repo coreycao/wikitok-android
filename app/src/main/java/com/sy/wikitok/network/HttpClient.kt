@@ -50,7 +50,7 @@ val httpClientAndroid = HttpClient(Android) {
     install(Logging) {
         logger = object : Logger {
             override fun log(message: String) {
-                AppLogger.v(tag = "Logger Ktor =>", message = message)
+                AppLogger.v(tag = "Ktor =>", message = message)
             }
         }
         level = LogLevel.ALL
@@ -58,7 +58,7 @@ val httpClientAndroid = HttpClient(Android) {
 
     install(ResponseObserver) {
         onResponse { response ->
-            AppLogger.d(tag = "HTTP status:", message = "${response.status.value}")
+            AppLogger.d(tag = "Ktor =>", message = "HTTP status: ${response.status.value}")
         }
     }
 
