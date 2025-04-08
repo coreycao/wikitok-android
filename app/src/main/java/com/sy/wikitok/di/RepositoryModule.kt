@@ -7,7 +7,8 @@ import com.sy.wikitok.data.db.FeedDao
 import com.sy.wikitok.data.repository.UserRepository
 import com.sy.wikitok.data.repository.WikiRepository
 import com.sy.wikitok.dataStore
-import com.sy.wikitok.network.ApiService
+import com.sy.wikitok.network.AppUpdateApiService
+import com.sy.wikitok.network.WikiApiService
 import org.koin.android.ext.koin.androidApplication
 import org.koin.dsl.module
 
@@ -17,24 +18,30 @@ import org.koin.dsl.module
  */
 
 val repositoryModule = module {
-    single { provideUserRepository(androidApplication().dataStore) }
+    single { provideUserRepository(get(), androidApplication().dataStore) }
     single { provideWikiRepository(get(), get(), get(), get()) }
 }
 
 fun provideWikiRepository(
-    apiService: ApiService,
+    wikiApiService: WikiApiService,
     userRepository: UserRepository,
     feedDao: FeedDao,
     favoriteDao: FavoriteDao
 ): WikiRepository {
     return WikiRepository(
-        apiService = apiService,
+        wikiApiService = wikiApiService,
         userRepository = userRepository,
         feedDao = feedDao,
         favDao = favoriteDao
     )
 }
 
-fun provideUserRepository(dataStore: DataStore<Preferences>): UserRepository {
-    return UserRepository(dataStore)
+fun provideUserRepository(
+    appUpdateApiService: AppUpdateApiService,
+    dataStore: DataStore<Preferences>
+): UserRepository {
+    return UserRepository(
+        appUpdateApiService = appUpdateApiService,
+        dataStore = dataStore
+    )
 }

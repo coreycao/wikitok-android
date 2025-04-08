@@ -31,9 +31,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -51,11 +48,13 @@ import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sy.wikitok.BuildConfig
 import com.sy.wikitok.R
 import com.sy.wikitok.data.Langs
 import com.sy.wikitok.data.Language
 import com.sy.wikitok.ui.component.NetworkImage
+import com.sy.wikitok.ui.screen.MainViewModel.SettingDialogState.AppUpdateDialog
 import com.sy.wikitok.utils.Logger
 
 /**
@@ -69,40 +68,65 @@ fun SettingScreen(
     mainViewModel: MainViewModel,
     modifier: Modifier = Modifier,
 ) {
-
-    var showDialog by remember { mutableStateOf(false) }
-
-    var showOptionDialog by remember { mutableStateOf(false) }
-
-    val langOptions = Langs.values.toList()
+    val dialogState = mainViewModel.settingDialogState.collectAsStateWithLifecycle()
 
     Box(modifier = modifier.fillMaxSize()) {
-        if (showOptionDialog) {
-            SelectOptionDialog(
-                options = langOptions,
-                onOptionSelected = { option -> mainViewModel.changeLanguage(option) },
-                onDismissRequest = { showOptionDialog = false }
-            )
-        } else if (showDialog) {
-            val urlHandler = LocalUriHandler.current
-            val strUrl = "https://github.com/coreycao/wikitok-android"
-            val annotatedText = buildAnnotatedString {
-                append(
-                    "This App is opensource\n\nFind it on Github\n\n"
-                )
-                val link = LinkAnnotation.Url(
-                    strUrl,
-                    styles = TextLinkStyles(SpanStyle(color = Color.Blue))
-                ) {
-                    val url = (it as LinkAnnotation.Url).url
-                    urlHandler.openUri(url)
-                }
-                withLink(link) {
-                    append(strUrl)
+        when (dialogState.value) {
+            is AppUpdateDialog -> {
+                val checkState = (dialogState.value as AppUpdateDialog).checkedSuccess
+                Logger.d(tag = "SettingDialogState", message = "checkSuccess: $checkState")
+                if (checkState) {
+                    val upgradeInfo = (dialogState.value as AppUpdateDialog).versionInfo!!
+                    Logger.d(
+                        tag = "SettingDialogState",
+                        message = "newVersion: ${upgradeInfo.hasUpdate}"
+                    )
+                    // todo: show upgrade dialog
+                    mainViewModel.showSnackBar("new version found: ${upgradeInfo.latestVersion}")
+                } else {
+                    mainViewModel.showSnackBar(stringResource(R.string.snakebar_uptodate))
                 }
             }
-            MessageDialog(annotatedText) {
-                showDialog = false
+
+            is MainViewModel.SettingDialogState.AboutMessageDialog -> {
+                val urlHandler = LocalUriHandler.current
+                val strUrl = "https://github.com/coreycao/wikitok-android"
+                val annotatedText = buildAnnotatedString {
+                    append(
+                        "This App is opensource\n\nFind it on Github\n\n"
+                    )
+                    val link = LinkAnnotation.Url(
+                        strUrl,
+                        styles = TextLinkStyles(SpanStyle(color = Color.Blue))
+                    ) {
+                        val url = (it as LinkAnnotation.Url).url
+                        urlHandler.openUri(url)
+                    }
+                    withLink(link) {
+                        append(strUrl)
+                    }
+                }
+                MessageDialog(annotatedText) {
+                    mainViewModel.dismissDialog()
+                }
+            }
+
+            is MainViewModel.SettingDialogState.LanguageOption -> {
+                val langOptions = Langs.values.toList()
+                SelectOptionDialog(
+                    options = langOptions,
+                    onOptionSelected = { option ->
+                        mainViewModel.changeLanguage(option)
+                        mainViewModel.dismissDialog()
+                    },
+                    onDismissRequest = {
+                        mainViewModel.dismissDialog()
+                    }
+                )
+            }
+
+            is MainViewModel.SettingDialogState.None -> {
+                // do nothing, just dismiss the dialogs.
             }
         }
 
@@ -117,29 +141,29 @@ fun SettingScreen(
                 item {
                     SettingsItem(
                         Icons.Filled.Place,
-                        "Languages",
-                        "Language of the wikis"
+                        stringResource(R.string.txt_setting_item_language),
+                        stringResource(R.string.txt_setting_item_language_hint)
                     ) {
-                        showOptionDialog = true
+                        mainViewModel.showLanguageOptionDialog()
                     }
                     SettingsItem(
                         Icons.AutoMirrored.Default.Send,
-                        "Export",
-                        "Export your favorites as JSON"
+                        stringResource(R.string.txt_setting_item_export),
+                        stringResource(R.string.txt_setting_item_export_hint)
                     )
                     SettingsItem(
                         Icons.Filled.Refresh,
-                        "Version: ${BuildConfig.VERSION_NAME}",
-                        "Check for update"
+                        "${stringResource(R.string.txt_setting_item_version)}: ${BuildConfig.VERSION_NAME}",
+                        stringResource(R.string.txt_setting_item_version_hint)
                     ) {
-                        mainViewModel.showSnackBar("Up to date.")
+                        mainViewModel.checkAppUpdate()
                     }
                     SettingsItem(
                         Icons.Default.Info,
-                        "About",
-                        "About this App"
+                        stringResource(R.string.txt_setting_item_about),
+                        stringResource(R.string.txt_setting_item_about_hint)
                     ) {
-                        showDialog = true
+                        mainViewModel.showAboutMessageDialog()
                     }
                 }
             }
@@ -194,7 +218,6 @@ fun SettingsItem(icon: Any, title: String, subtitle: String, action: () -> Unit 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MessageDialog(message: AnnotatedString, onDismiss: () -> Unit = {}) {
-
     BasicAlertDialog(
         onDismissRequest = {
             onDismiss()
@@ -228,7 +251,7 @@ private fun MessageDialog(message: AnnotatedString, onDismiss: () -> Unit = {}) 
 }
 
 @Composable
-fun SelectOptionDialog(
+private fun SelectOptionDialog(
     options: List<Language>,
     onOptionSelected: (Language) -> Unit,
     onDismissRequest: () -> Unit
@@ -247,32 +270,15 @@ fun SelectOptionDialog(
                 Spacer(modifier = Modifier.height(8.dp))
                 LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
                     items(options.count()) { idx ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp)
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = ripple(bounded = true)
-                                ) {
-                                    onOptionSelected(options[idx])
-                                    onDismissRequest()
-                                }
-                        ) {
-                            NetworkImage(
-                                url = options[idx].flag,
-                                contentScale = ContentScale.FillBounds,
-                                contentDescription = options[idx].name,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = options[idx].name,
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                        }
-
+                        val item = options[idx]
+                        SelectOptionItem(
+                            onItemSelected = { ->
+                                onOptionSelected(item)
+                                onDismissRequest
+                            },
+                            itemIconUrl = item.flag,
+                            itemTitle = item.name
+                        )
                     }
                 }
 
@@ -288,15 +294,30 @@ fun SelectOptionDialog(
 }
 
 @Composable
-fun SelectOptionItem() {
-    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Image(
-            modifier = Modifier.size(24.dp),
-            imageVector = Icons.Filled.Place, contentDescription = null
+fun SelectOptionItem(onItemSelected: () -> Unit, itemIconUrl: String, itemTitle: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = ripple(bounded = true)
+            ) {
+                onItemSelected()
+            }
+    ) {
+        NetworkImage(
+            url = itemIconUrl,
+            contentScale = ContentScale.FillBounds,
+            contentDescription = itemTitle,
+            modifier = Modifier.size(24.dp)
         )
-        TextButton(onClick = {
-        }) {
-            Text(text = "Chinese")
-        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = itemTitle,
+            style = MaterialTheme.typography.bodyLarge
+        )
     }
+
 }

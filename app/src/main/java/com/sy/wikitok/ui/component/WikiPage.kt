@@ -74,7 +74,7 @@ fun WikiPage(
     var showHeart by remember { mutableStateOf(false) }
 
     LaunchedEffect(showHeart) {
-        delay(600)
+        delay(400)
         if (showHeart) {
             showHeart = false
         }

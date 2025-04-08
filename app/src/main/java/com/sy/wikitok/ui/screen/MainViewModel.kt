@@ -3,10 +3,15 @@ package com.sy.wikitok.ui.screen
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sy.wikitok.data.Language
-import com.sy.wikitok.data.model.WikiModel
+import com.sy.wikitok.data.model.AppUpdateInfo
 import com.sy.wikitok.data.repository.UserRepository
+import com.sy.wikitok.utils.Logger
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 /**
@@ -15,16 +20,25 @@ import kotlinx.coroutines.launch
  */
 class MainViewModel(private val userRepo: UserRepository) : ViewModel() {
 
-    sealed class UiState {
-        data object Loading : UiState()
-        data class Success(val wikiList: List<WikiModel>) : UiState()
-        data class Error(val message: String) : UiState()
+    sealed class SettingDialogState {
+        object None : SettingDialogState()
+        data class AppUpdateDialog(
+            val checkedSuccess: Boolean = true,
+            val versionInfo: AppUpdateInfo? = null
+        ) :
+            SettingDialogState()
+
+        object AboutMessageDialog : SettingDialogState()
+        object LanguageOption : SettingDialogState()
     }
 
-    private val _snakebarEvent = MutableSharedFlow<SnackbarEvent>()
-    val snakebarEvent = _snakebarEvent.asSharedFlow()
+    private val _settingDialogState = MutableStateFlow<SettingDialogState>(SettingDialogState.None)
+    val settingDialogState = _settingDialogState.asStateFlow()
 
-    data class SnackbarEvent(
+    private val _snakeBarEvent = MutableSharedFlow<SnackBarEvent>()
+    val snakeBarEvent = _snakeBarEvent.asSharedFlow()
+
+    data class SnackBarEvent(
         val message: String,
         val actionLabel: String? = null,
         val onAction: (() -> Unit)? = null
@@ -32,15 +46,33 @@ class MainViewModel(private val userRepo: UserRepository) : ViewModel() {
 
     fun showSnackBar(message: String) {
         viewModelScope.launch {
-            _snakebarEvent.emit(SnackbarEvent(message))
+            _snakeBarEvent.emit(SnackBarEvent(message))
         }
     }
 
-/*    val currentLangState = wikiRepository.currentLang().stateIn(
-        viewModelScope,
-        SharingStarted.Lazily,
-        Langs[wikiRepository.DEFAULT_LANG]
-    )*/
+    fun showAboutMessageDialog() {
+        viewModelScope.launch {
+            _settingDialogState.value = SettingDialogState.AboutMessageDialog
+        }
+    }
+
+    fun showLanguageOptionDialog() {
+        viewModelScope.launch {
+            _settingDialogState.value = SettingDialogState.LanguageOption
+        }
+    }
+
+    private fun showAppUpdateDialog(versionInfo: AppUpdateInfo) {
+        viewModelScope.launch {
+            _settingDialogState.value = SettingDialogState.AppUpdateDialog(true, versionInfo)
+        }
+    }
+
+    fun dismissDialog() {
+        viewModelScope.launch {
+            _settingDialogState.value = SettingDialogState.None
+        }
+    }
 
     fun changeLanguage(lang: Language) {
         viewModelScope.launch {
@@ -48,4 +80,21 @@ class MainViewModel(private val userRepo: UserRepository) : ViewModel() {
         }
     }
 
+    fun checkAppUpdate() {
+        viewModelScope.launch {
+            userRepo.observeAppVersion()
+                .onEach {
+                    if (it.isSuccess) {
+                        val appUpdateInfo: AppUpdateInfo = it.getOrThrow()
+                        showAppUpdateDialog(appUpdateInfo)
+                    } else {
+                        _settingDialogState.value = SettingDialogState.AppUpdateDialog(false)
+                    }
+                }.catch {
+                    _settingDialogState.value = SettingDialogState.AppUpdateDialog(false)
+                }.collect { value ->
+                    Logger.d(tag = "checkAppUpdate", message = "value: $value")
+                }
+        }
+    }
 }

@@ -8,6 +8,9 @@ import com.sy.wikitok.data.DEFAULT_LANGUAGE
 import com.sy.wikitok.data.DEFAULT_LANG_ID
 import com.sy.wikitok.data.Langs
 import com.sy.wikitok.data.Language
+import com.sy.wikitok.data.model.AppUpdateInfo
+import com.sy.wikitok.network.AppUpdateApiService
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 /**
@@ -17,7 +20,10 @@ import kotlinx.coroutines.flow.map
  * Repo for user info and settings.
  *
  */
-class UserRepository(private val dataStore: DataStore<Preferences>) {
+class UserRepository(
+    private val appUpdateApiService: AppUpdateApiService,
+    private val dataStore: DataStore<Preferences>
+) {
 
     companion object {
         val KEY_LANG = stringPreferencesKey("lang")
@@ -33,4 +39,7 @@ class UserRepository(private val dataStore: DataStore<Preferences>) {
         val langId = preference[KEY_LANG] ?: DEFAULT_LANG_ID
         Langs[langId] ?: DEFAULT_LANGUAGE
     }
+
+    fun observeAppVersion(): Flow<Result<AppUpdateInfo>> = appUpdateApiService.observerVersionInfo()
+
 }

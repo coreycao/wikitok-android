@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.flow
  * @author Yeung
  * @date 2025/3/18
  */
-class ApiService(private val httpClient: HttpClient) {
+class WikiApiService(private val httpClient: HttpClient) : BaseApiService {
 
     /**
      * 请求维基百科随机页面列表

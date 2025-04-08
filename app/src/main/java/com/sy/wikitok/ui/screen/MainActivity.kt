@@ -38,7 +38,6 @@ import com.sy.wikitok.ui.theme.WikiTokTheme
 import com.sy.wikitok.utils.Logger
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
 import org.koin.androidx.compose.KoinAndroidContext
 import org.koin.androidx.compose.koinViewModel
 
@@ -111,13 +110,11 @@ private fun HomeScaffold() {
 
     LaunchedEffect(Unit) {
         Logger.d(tag = "MainActivity", message = "observerSnakeBarEvent")
-
-        mainViewModel.snakebarEvent
+        mainViewModel.snakeBarEvent
             .debounce(300)
             .collect {
                 snackbarHostState.showSnackbar(it.message)
             }
-
     }
 
     LaunchedEffect(Unit) {

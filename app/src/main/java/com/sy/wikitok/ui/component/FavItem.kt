@@ -51,8 +51,8 @@ fun DismissFavItem(
     // 监听滑动状态
     LaunchedEffect(swipeBoxState.currentValue) {
         if (swipeBoxState.currentValue == SwipeToDismissBoxValue.EndToStart) {
-            onDelete(wikiModel)      // 触发删除回调
-            swipeBoxState.reset()    // 重置滑动状态
+            onDelete(wikiModel)
+            swipeBoxState.reset()
         }
     }
 

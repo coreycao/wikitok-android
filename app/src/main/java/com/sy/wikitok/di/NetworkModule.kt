@@ -1,6 +1,7 @@
 package com.sy.wikitok.di
 
-import com.sy.wikitok.network.ApiService
+import com.sy.wikitok.network.AppUpdateApiService
+import com.sy.wikitok.network.WikiApiService
 import com.sy.wikitok.network.httpClientAndroid
 import io.ktor.client.HttpClient
 import org.koin.dsl.module
@@ -15,13 +16,18 @@ import org.koin.dsl.module
 
 val networkModule = module {
     single { provideHttpClient() }
-    single { provideApiService(get()) }
+    single { provideWikiApiService(get()) }
+    single { provideAppUpdateApiService(get()) }
 }
 
 fun provideHttpClient(): HttpClient {
     return httpClientAndroid
 }
 
-fun provideApiService(httpClient: HttpClient): ApiService {
-    return ApiService(httpClient)
+fun provideWikiApiService(httpClient: HttpClient): WikiApiService {
+    return WikiApiService(httpClient)
+}
+
+fun provideAppUpdateApiService(httpClient: HttpClient): AppUpdateApiService {
+    return AppUpdateApiService(httpClient)
 }
