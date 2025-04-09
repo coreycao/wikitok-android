@@ -13,6 +13,7 @@ import com.sy.wikitok.di.appModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
+import org.threeten.bp.zone.ZoneRulesProvider
 
 /**
  * @author Yeung
@@ -28,6 +29,7 @@ class WikiTokApp : Application() {
         initAppLogger()
         initKoin()
         initCoil()
+        initThreeTen()
     }
 
     private fun initAppLogger() {
@@ -53,5 +55,9 @@ class WikiTokApp : Application() {
             }
             builder.build()
         }
+    }
+
+    private fun initThreeTen() {
+        ZoneRulesProvider.getAvailableZoneIds()
     }
 }

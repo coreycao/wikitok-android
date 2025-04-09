@@ -92,7 +92,7 @@ fun FavItem(
 ) {
     val context = LocalContext.current
     Card(
-        modifier = Modifier.padding(8.dp),
+        modifier = modifier.padding(8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
         shape = MaterialTheme.shapes.medium,
     ) {

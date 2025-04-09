@@ -19,7 +19,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
@@ -48,11 +47,15 @@ class FeedViewModel(
     fun initFeedData() {
         viewModelScope.launch {
             Logger.d(tag = "FeedViewModel", message = "collectDB")
-            _feedDBFlow.collect()
+            _feedDBFlow.collect{
+                Logger.d(tag = "FeedViewModel", message = "feedDB: collect")
+            }
         }
         viewModelScope.launch {
             Logger.d(tag = "FeedViewModel", message = "collectRemote")
-            _feedRemoteFlow.collect()
+            _feedRemoteFlow.collect{
+                Logger.d(tag = "FeedViewModel", message = "feedRemote: collect")
+            }
         }
     }
 
@@ -116,6 +119,7 @@ class FeedViewModel(
 
     fun onFavoriteToggled(wikiModel: WikiModel) {
         viewModelScope.launch {
+            Logger.d(tag = "FeedViewModel", message = "toggleFavorite, $wikiModel")
             wikiRepository.toggleFavorite(wikiModel)
         }
     }

@@ -120,6 +120,9 @@ dependencies {
     implementation(libs.coil.network)
     implementation(libs.coil.svg)
 
+    // threetenbp for java.time
+    implementation(libs.threetenbp)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

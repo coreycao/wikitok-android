@@ -78,4 +78,7 @@ class WikiRepository(
                 entity.toWikiModel()
             }
         }
+
+    suspend fun readLocalFavorites() = favDao.readAllFavorites()
+        .map { entity -> entity.toWikiModel() }
 }

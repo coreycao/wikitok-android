@@ -1,5 +1,6 @@
 package com.sy.wikitok.ui.screen
 
+import android.content.Intent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -37,6 +38,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -69,7 +71,7 @@ fun SettingScreen(
     modifier: Modifier = Modifier,
 ) {
     val dialogState = mainViewModel.settingDialogState.collectAsStateWithLifecycle()
-
+    val context = LocalContext.current
     Box(modifier = modifier.fillMaxSize()) {
         when (dialogState.value) {
             is AppUpdateDialog -> {
@@ -125,6 +127,24 @@ fun SettingScreen(
                 )
             }
 
+            is MainViewModel.SettingDialogState.ExportFavorite -> {
+                (dialogState.value as MainViewModel.SettingDialogState.ExportFavorite)
+                    .result.fold(onSuccess = {
+                        if (it.isBlank()) {
+                            mainViewModel.showSnackBar("Export failed, you have no favorite wikis.")
+                        } else {
+                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, it)
+                            }
+                            context.startActivity(Intent.createChooser(intent, "Share"))
+                        }
+                    }, onFailure = {
+                        Logger.d(tag = "SettingDialogState", message = "export error: $it")
+                        mainViewModel.showSnackBar("Export failed, try again")
+                    })
+            }
+
             is MainViewModel.SettingDialogState.None -> {
                 // do nothing, just dismiss the dialogs.
             }
@@ -150,7 +170,9 @@ fun SettingScreen(
                         Icons.AutoMirrored.Default.Send,
                         stringResource(R.string.txt_setting_item_export),
                         stringResource(R.string.txt_setting_item_export_hint)
-                    )
+                    ) {
+                        mainViewModel.exportFavorite()
+                    }
                     SettingsItem(
                         Icons.Filled.Refresh,
                         "${stringResource(R.string.txt_setting_item_version)}: ${BuildConfig.VERSION_NAME}",

@@ -16,9 +16,10 @@ lifecycleRuntimeKtx = "2.8.7"
 koin = "4.0.0"
 coil = "3.1.0"
 room = "2.6.1"
-ksp = "2.0.21-1.0.28"
+ksp = "2.1.10-1.0.31"
 navigationCompose = "2.8.9"
 datastore = "1.1.4"
+threetenbp = "1.6.7"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -68,6 +69,9 @@ koin-androidx-compose = { group = "io.insert-koin", name = "koin-androidx-compos
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 coil-network = { group = "io.coil-kt.coil3", name = "coil-network-ktor3", version.ref = "coil" }
 coil-svg = { group = "io.coil-kt.coil3", name = "coil-svg", version.ref = "coil" }
+
+# threeten-bp
+threetenbp  = { group = "org.threeten", name = "threetenbp", version.ref = "threetenbp"}
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

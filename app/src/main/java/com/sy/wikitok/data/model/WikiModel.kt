@@ -2,11 +2,13 @@ package com.sy.wikitok.data.model
 
 import com.sy.wikitok.data.db.FavoriteEntity
 import com.sy.wikitok.data.db.WikiEntity
+import kotlinx.serialization.Serializable
 
 /**
  * @author Yeung
  * @date 2025/3/18
  */
+@Serializable
 data class WikiModel(
     val id: String,
     val title: String,

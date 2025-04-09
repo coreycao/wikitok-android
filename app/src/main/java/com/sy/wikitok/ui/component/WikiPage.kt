@@ -1,10 +1,6 @@
 package com.sy.wikitok.ui.component
 
 import android.content.Intent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -27,11 +23,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -49,7 +44,6 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.sy.wikitok.R
 import com.sy.wikitok.data.model.WikiModel
-import kotlinx.coroutines.delay
 
 /**
  * @author Yeung
@@ -70,23 +64,16 @@ fun WikiPage(
     val statusBarHeight = windowInsets?.getInsets(WindowInsetsCompat.Type.systemBars())?.top ?: 0
     val statusBarHeightDp = with(LocalDensity.current) { statusBarHeight.toDp() }
 
-    // State to control heart animation
-    var showHeart by remember { mutableStateOf(false) }
+    // State to trigger the heart animation once
+    var triggerHeartAnimation by remember { mutableStateOf(false) }
 
-    LaunchedEffect(showHeart) {
-        delay(400)
-        if (showHeart) {
-            showHeart = false
-        }
-    }
     Surface(
         modifier = Modifier
             .fillMaxSize()
             .pointerInput(Unit) {
                 detectTapGestures(
                     onDoubleTap = {
-                        showHeart = true
-                        onDoubleTab(wikiModel)
+                        triggerHeartAnimation = true
                     })
             }) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -171,28 +158,18 @@ fun WikiPage(
                     .clickable {
                         val intent = Intent(Intent.ACTION_SEND).apply {
                             type = "text/plain"
-                            putExtra(Intent.EXTRA_TEXT,  "${wikiModel.title}: ${wikiModel.linkUrl}")
+                            putExtra(Intent.EXTRA_TEXT, "${wikiModel.title}: ${wikiModel.linkUrl}")
                         }
                         context.startActivity(Intent.createChooser(intent, "Share"))
                     }
             )
-
             // Heart animation
-            AnimatedVisibility(
-                visible = showHeart,
-                enter = fadeIn() + scaleIn(initialScale = 0.4f),
-                exit = fadeOut(),
+            HeartAnimation(
+                triggerAnimation = triggerHeartAnimation,
+                onAnimationEnd = { onDoubleTab(wikiModel) },
                 modifier = Modifier.align(Alignment.Center)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Favorite,
-                    contentDescription = stringResource(R.string.desc_nav_favorite),
-                    tint = if (wikiModel.isFavorite) Color.Red else Color.Gray,
-                    modifier = Modifier
-                        .size(124.dp)
-                )
-            }
+            )
         }
-
     }
 }
+

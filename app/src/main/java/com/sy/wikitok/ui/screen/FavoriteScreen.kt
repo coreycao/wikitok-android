@@ -81,13 +81,14 @@ fun FavoriteListScreen(
         modifier = modifier,
         contentPadding = PaddingValues(8.dp)
     ) {
+        val itemModifier = Modifier.fillMaxWidth()
         items(
             count = favoriteList.size,
             key = { index -> favoriteList[index].id }
         ) { index ->
             DismissFavItem(
                 favoriteList[index],
-                modifier = Modifier.fillMaxWidth(),
+                modifier = itemModifier,
                 onDelete = onItemRemoved,
                 onImageTap = { wikiModel ->
                     fullScreenImageState.value = true
@@ -247,13 +248,14 @@ fun SearchResultContent(
             .fillMaxSize(),
         contentPadding = PaddingValues(8.dp)
     ) {
+        val itemModifier = Modifier.fillMaxWidth()
         items(
             count = favoriteList.size,
             key = { index -> favoriteList[index].id }
         ) { index ->
             FavItem(
                 wikiModel = favoriteList[index],
-                modifier = Modifier.fillMaxWidth(),
+                modifier = itemModifier,
             )
         }
     }
