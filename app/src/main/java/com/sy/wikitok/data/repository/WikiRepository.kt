@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.map
  */
 class WikiRepository(
     private val wikiApiService: WikiApiService,
-    private val userRepository: UserRepository,
     private val feedDao: FeedDao,
     private val favDao: FavoriteDao
 ) {

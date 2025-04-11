@@ -16,8 +16,9 @@ Get an demo apk at the [release page](https://github.com/coreycao/wikitok-androi
 
 - Ktor for network
 - Coil for image loader
-- Koil for DI
-- Room for data persist
+- Koin for DI
+- Jetpack Room & DataStore for data persist
+- Jetpack Startup for app init.
 
 ## ScreenShot
 
