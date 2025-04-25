@@ -58,6 +58,7 @@ import com.sy.wikitok.data.Language
 import com.sy.wikitok.ui.component.NetworkImage
 import com.sy.wikitok.ui.screen.MainViewModel.SettingDialogState.AppUpdateDialog
 import com.sy.wikitok.utils.Logger
+import com.sy.wikitok.utils.SnackbarManager
 
 /**
  * @author Yeung
@@ -84,9 +85,9 @@ fun SettingScreen(
                         message = "newVersion: ${upgradeInfo.hasUpdate}"
                     )
                     // todo: show upgrade dialog
-                    mainViewModel.showSnackBar("new version found: ${upgradeInfo.latestVersion}")
+                    SnackbarManager.showSnackbar("new version found: ${upgradeInfo.latestVersion}")
                 } else {
-                    mainViewModel.showSnackBar(stringResource(R.string.snakebar_uptodate))
+                    SnackbarManager.showSnackbar(stringResource(R.string.snakebar_uptodate))
                 }
             }
 
@@ -131,7 +132,7 @@ fun SettingScreen(
                 (dialogState.value as MainViewModel.SettingDialogState.ExportFavorite)
                     .result.fold(onSuccess = {
                         if (it.isBlank()) {
-                            mainViewModel.showSnackBar("Export failed, you have no favorite wikis.")
+                            SnackbarManager.showSnackbar("Export failed, you have no favorite wikis.")
                         } else {
                             val intent = Intent(Intent.ACTION_SEND).apply {
                                 type = "text/plain"
@@ -141,7 +142,7 @@ fun SettingScreen(
                         }
                     }, onFailure = {
                         Logger.d(tag = "SettingDialogState", message = "export error: $it")
-                        mainViewModel.showSnackBar("Export failed, try again")
+                        SnackbarManager.showSnackbar("Export failed, try again")
                     })
             }
 

@@ -36,8 +36,8 @@ import androidx.navigation.compose.rememberNavController
 import com.sy.wikitok.R
 import com.sy.wikitok.ui.theme.WikiTokTheme
 import com.sy.wikitok.utils.Logger
+import com.sy.wikitok.utils.SnackbarManager
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.debounce
 import org.koin.androidx.compose.KoinAndroidContext
 import org.koin.androidx.compose.koinViewModel
 
@@ -108,13 +108,24 @@ private fun HomeScaffold() {
 
     val feedViewModel = koinViewModel<FeedViewModel>()
 
-    LaunchedEffect(Unit) {
-        Logger.d(tag = "MainActivity", message = "observerSnakeBarEvent")
-        mainViewModel.snakeBarEvent
-            .debounce(300)
-            .collect {
-                snackbarHostState.showSnackbar(it.message)
+    LaunchedEffect(key1 = snackbarHostState){
+        SnackbarManager.snackbarFlow.collect { snackbarData ->
+            if (snackbarData != null) {
+                val result = snackbarHostState.showSnackbar(
+                    message = snackbarData.message,
+                    actionLabel = snackbarData.actionLabel,
+                    duration = snackbarData.duration
+                )
+                when (result) {
+                    androidx.compose.material3.SnackbarResult.ActionPerformed -> {
+                        snackbarData.onAction?.invoke()
+                    }
+                    androidx.compose.material3.SnackbarResult.Dismissed -> {
+                        // Snackbar closed
+                    }
+                }
             }
+        }
     }
 
     LaunchedEffect(Unit) {

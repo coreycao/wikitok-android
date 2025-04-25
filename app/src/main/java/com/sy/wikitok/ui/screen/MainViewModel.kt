@@ -9,9 +9,7 @@ import com.sy.wikitok.data.repository.UserRepository
 import com.sy.wikitok.data.repository.WikiRepository
 import com.sy.wikitok.utils.Logger
 import com.sy.wikitok.utils.currentDateTime
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.onEach
@@ -41,21 +39,6 @@ class MainViewModel(private val userRepo: UserRepository, private val wikiRepo: 
 
     private val _settingDialogState = MutableStateFlow<SettingDialogState>(SettingDialogState.None)
     val settingDialogState = _settingDialogState.asStateFlow()
-
-    private val _snakeBarEvent = MutableSharedFlow<SnackBarEvent>()
-    val snakeBarEvent = _snakeBarEvent.asSharedFlow()
-
-    data class SnackBarEvent(
-        val message: String,
-        val actionLabel: String? = null,
-        val onAction: (() -> Unit)? = null
-    )
-
-    fun showSnackBar(message: String) {
-        viewModelScope.launch {
-            _snakeBarEvent.emit(SnackBarEvent(message))
-        }
-    }
 
     fun showAboutMessageDialog() {
         viewModelScope.launch {
