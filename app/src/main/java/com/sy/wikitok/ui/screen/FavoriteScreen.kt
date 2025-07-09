@@ -1,5 +1,6 @@
 package com.sy.wikitok.ui.screen
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -20,10 +21,9 @@ import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.isTraversalGroup
@@ -35,7 +35,8 @@ import com.sy.wikitok.R
 import com.sy.wikitok.data.model.WikiModel
 import com.sy.wikitok.ui.component.DismissFavItem
 import com.sy.wikitok.ui.component.FavItem
-import com.sy.wikitok.ui.component.FullScreenImage
+import com.sy.wikitok.ui.component.ImageBrowser
+import com.sy.wikitok.ui.component.rememberImageBrowserState
 import com.sy.wikitok.ui.screen.FavoriteViewModel.UiState
 import com.sy.wikitok.utils.Logger
 import org.koin.androidx.compose.koinViewModel
@@ -44,12 +45,13 @@ import org.koin.androidx.compose.koinViewModel
  * @author Yeung
  * @date 2025/3/24
  */
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavoriteScreen() {
 
     val favoriteViewModel = koinViewModel<FavoriteViewModel>()
+
+    Logger.d(tag = "FavoriteScreen", message = favoriteViewModel.toString())
 
     val favoriteUIState by favoriteViewModel.favorites.collectAsStateWithLifecycle()
 
@@ -59,9 +61,14 @@ fun FavoriteScreen() {
         is UiState.Empty -> EmptyScreen()
         is UiState.Success -> {
             val favoriteList = (favoriteUIState as UiState.Success).wikiList
-            SearchScreen(
+            /*SearchScreen(
                 modifier = Modifier.fillMaxSize(),
                 favoriteList = favoriteList
+            )*/
+            FavoriteListScreen(
+                modifier = Modifier.fillMaxSize(),
+                favoriteList = favoriteList,
+                onItemRemoved = favoriteViewModel::deleteFavorite,
             )
         }
     }
@@ -72,10 +79,10 @@ fun FavoriteScreen() {
 fun FavoriteListScreen(
     modifier: Modifier = Modifier,
     favoriteList: List<WikiModel>,
-    onItemRemoved: (WikiModel) -> Unit
+    onItemRemoved: (WikiModel) -> Unit,
+    onItemImageTap: (WikiModel) -> Unit = { _ -> }
 ) {
-    val fullScreenImageState = rememberSaveable { mutableStateOf(false) }
-    val fullScreenItem = rememberSaveable { mutableStateOf<WikiModel?>(null) }
+    val fullScreenImageState = rememberImageBrowserState()
 
     LazyColumn(
         modifier = modifier,
@@ -89,23 +96,20 @@ fun FavoriteListScreen(
             DismissFavItem(
                 favoriteList[index],
                 modifier = itemModifier,
-                onDelete = onItemRemoved,
                 onImageTap = { wikiModel ->
-                    fullScreenImageState.value = true
-                    fullScreenItem.value = wikiModel
-                }
+                    fullScreenImageState.show(wikiModel.imgUrl)
+                    onItemImageTap(wikiModel)
+                },
+                onDelete = onItemRemoved
             )
         }
     }
 
-    if (fullScreenItem.value != null) {
-        FullScreenImage(
-            imgUrl = fullScreenItem.value!!.imgUrl,
-            visible = fullScreenImageState.value,
-            onClose = {
-                fullScreenImageState.value = false
-            })
-    }
+
+    ImageBrowser(
+        fullScreenImageState,
+        modifier = Modifier.background(Color.Black.copy(alpha = 0.9f))
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -227,14 +231,17 @@ fun SearchScreen(
             }
         }
 
+
+
         FavoriteListScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(top = SearchBarDefaults.InputFieldHeight)
                 .semantics { traversalIndex = 1f },
             favoriteList = favoriteList,
-            onItemRemoved = favoriteViewModel::deleteFavorite
+            onItemRemoved = favoriteViewModel::deleteFavorite,
         )
+
     }
 }
 
