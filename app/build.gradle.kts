@@ -1,4 +1,5 @@
 import com.android.build.gradle.internal.api.BaseVariantOutputImpl
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
@@ -61,9 +62,13 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
+
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_11)
+        }
     }
+
     buildFeatures {
         compose = true
         buildConfig = true
@@ -99,6 +104,9 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
 
+    // kotlinx datetime
+    implementation(libs.kotlinx.datetime)
+
     // ktor
     implementation(platform(libs.ktor.bom))
     implementation(libs.ktor.android)
@@ -119,9 +127,6 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network)
     implementation(libs.coil.svg)
-
-    // threetenbp for java.time
-    implementation(libs.threetenbp)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

@@ -4,7 +4,6 @@ package com.sy.wikitok
  * @author Yeung
  * @date 2025/4/11
  */
-
 import android.content.Context
 import androidx.startup.Initializer
 import coil3.ImageLoader
@@ -16,7 +15,6 @@ import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
 import com.sy.wikitok.di.appModule
 import com.sy.wikitok.utils.Logger as AppLogger
-import org.threeten.bp.zone.ZoneRulesProvider
 
 class KoinInitializer : Initializer<Unit> {
     override fun create(context: Context) {
@@ -41,14 +39,6 @@ class CoilInitializer : Initializer<Unit> {
             }
             builder.build()
         }
-    }
-
-    override fun dependencies(): List<Class<out Initializer<*>>> = emptyList()
-}
-
-class ThreeTenInitializer : Initializer<Unit> {
-    override fun create(context: Context) {
-        ZoneRulesProvider.getAvailableZoneIds()
     }
 
     override fun dependencies(): List<Class<out Initializer<*>>> = emptyList()

@@ -1,7 +1,6 @@
 package com.sy.wikitok
 
 import android.app.Application
-import androidx.startup.AppInitializer
 
 /**
  * @author Yeung
@@ -10,11 +9,5 @@ import androidx.startup.AppInitializer
 class WikiTokApp : Application() {
     override fun onCreate() {
         super.onCreate()
-        initThreeTen()
-    }
-
-    private fun initThreeTen() {
-        AppInitializer.getInstance(this@WikiTokApp)
-            .initializeComponent(ThreeTenInitializer::class.java)
     }
 }
