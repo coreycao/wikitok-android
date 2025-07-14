@@ -1,5 +1,6 @@
 import com.android.build.gradle.internal.api.BaseVariantOutputImpl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import kotlin.text.toInt
 
 plugins {
     alias(libs.plugins.android.application)
@@ -14,12 +15,12 @@ apply(from = "loadProperties.gradle.kts")
 
 android {
     namespace = "com.sy.wikitok"
-    compileSdk = 35
+    compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
         applicationId = "com.sy.wikitok"
-        minSdk = 24
-        targetSdk = 35
+        minSdk = libs.versions.android.minSdk.get().toInt()
+        targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 2
         versionName = "1.0.2"
 
