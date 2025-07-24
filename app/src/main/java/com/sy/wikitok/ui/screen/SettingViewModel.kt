@@ -12,6 +12,7 @@ import com.sy.wikitok.utils.currentDateTime
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
@@ -21,17 +22,26 @@ import kotlinx.serialization.json.Json
  * @author Yeung
  * @date 2025/3/20
  */
-class MainViewModel(private val userRepo: UserRepository, private val wikiRepo: WikiRepository) :
-    ViewModel() {
+class SettingViewModel(
+    private val userRepo: UserRepository,
+    private val wikiRepo: WikiRepository
+) : ViewModel() {
+
+    init {
+        Logger.d(tag = "SettingVM", message = "onCreated")
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        Logger.d(tag = "SettingVM", message = "onCleared")
+    }
 
     sealed class SettingDialogState {
         object None : SettingDialogState()
         data class AppUpdateDialog(
             val checkedSuccess: Boolean = true,
             val versionInfo: AppUpdateInfo? = null
-        ) :
-            SettingDialogState()
-
+        ) : SettingDialogState()
         object AboutMessageDialog : SettingDialogState()
         object LanguageOption : SettingDialogState()
         data class ExportFavorite(val result: Result<String>) : SettingDialogState()
@@ -82,9 +92,7 @@ class MainViewModel(private val userRepo: UserRepository, private val wikiRepo: 
                     }
                 }.catch {
                     _settingDialogState.value = SettingDialogState.AppUpdateDialog(false)
-                }.collect { value ->
-                    Logger.d(tag = "checkAppUpdate", message = "value: $value")
-                }
+                }.first()
         }
     }
 
@@ -96,10 +104,11 @@ class MainViewModel(private val userRepo: UserRepository, private val wikiRepo: 
 
     fun exportFavorite() {
         viewModelScope.launch {
+            val favorites = wikiRepo.readLocalFavorites()
             _settingDialogState.value = SettingDialogState.ExportFavorite(
                 runCatching {
                     Json.encodeToString(
-                        ExportData(currentDateTime(), wikiRepo.readLocalFavorites())
+                        ExportData(currentDateTime(), favorites)
                     )
                 }
             )

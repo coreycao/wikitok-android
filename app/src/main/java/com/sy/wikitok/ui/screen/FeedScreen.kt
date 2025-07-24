@@ -3,6 +3,8 @@ package com.sy.wikitok.ui.screen
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -12,13 +14,31 @@ import com.sy.wikitok.BuildConfig
 import com.sy.wikitok.ui.component.WikiPage
 import com.sy.wikitok.ui.screen.FeedViewModel.UiState
 import com.sy.wikitok.utils.Logger
+import com.sy.wikitok.utils.SnackbarManager
+import org.koin.androidx.compose.koinViewModel
 
 /**
  * @author Yeung
  * @date 2025/3/24
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FeedScreen(feedViewModel: FeedViewModel) {
+fun FeedScreen(modifier: Modifier = Modifier, feedViewModel: FeedViewModel = koinViewModel()) {
+
+    LaunchedEffect(Unit) {
+        Logger.d(message = "FeedScreen LaunchedEffect")
+    }
+
+    // 处理 SideEffect
+    LaunchedEffect(feedViewModel.effect) {
+        feedViewModel.effect.collect { effect ->
+            when (effect) {
+                is FeedViewModel.Effect.Toast -> {
+                    SnackbarManager.showSnackbar(effect.message)
+                }
+            }
+        }
+    }
 
     val feedUiState by feedViewModel.feedUiState.collectAsStateWithLifecycle()
 
@@ -41,23 +61,29 @@ fun FeedScreen(feedViewModel: FeedViewModel) {
                     tag = "FeedScreen",
                     message = "update currentPage: ${pagerState.currentPage}"
                 )
-                feedViewModel.currentPage = pagerState.currentPage
+                feedViewModel.updateCurrentPage(pagerState.currentPage)
             }
 
-            VerticalPager(
-                state = pagerState,
+            PullToRefreshBox(
                 modifier = Modifier.fillMaxSize(),
-            ) { page ->
-                val wikiModel = wikiList[page]
-                WikiPage(
-                    wikiModel = wikiModel,
-                    onFavIconTapped = {
-                        feedViewModel.onFavoriteToggled(wikiModel)
-                    },
-                    onDoubleTab = {
-                        feedViewModel.onFavoriteToggled(wikiModel)
-                    }
-                )
+                isRefreshing = feedViewModel.isRefreshing,
+                onRefresh = feedViewModel::refresh
+            ) {
+                VerticalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize(),
+                ) { page ->
+                    val wikiModel = wikiList[page]
+                    WikiPage(
+                        wikiModel = wikiModel,
+                        onFavIconTapped = {
+                            feedViewModel.onFavoriteToggled(wikiModel)
+                        },
+                        onDoubleTapped = {
+                            feedViewModel.onFavoriteToggled(wikiModel)
+                        }
+                    )
+                }
             }
         }
     }

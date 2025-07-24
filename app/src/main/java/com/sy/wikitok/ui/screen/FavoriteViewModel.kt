@@ -3,10 +3,12 @@ package com.sy.wikitok.ui.screen
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sy.wikitok.data.model.WikiModel
+import com.sy.wikitok.data.repository.GenAIRepository
 import com.sy.wikitok.data.repository.WikiRepository
 import com.sy.wikitok.utils.Logger
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -15,9 +17,11 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.dropWhile
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -27,7 +31,19 @@ import kotlinx.coroutines.launch
  * @author Yeung
  * @date 2025/3/22
  */
-class FavoriteViewModel(private val wikiRepo: WikiRepository) : ViewModel() {
+class FavoriteViewModel(
+    private val wikiRepo: WikiRepository,
+    private val genAIRepository: GenAIRepository
+) : ViewModel() {
+
+    init {
+        Logger.d(tag = "FavoriteViewModel", message = "onCreated")
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        Logger.d(tag = "FavoriteViewModel", message = "onCleared")
+    }
 
     sealed class UiState {
         data class Success(val wikiList: List<WikiModel>) : UiState()
@@ -61,6 +77,58 @@ class FavoriteViewModel(private val wikiRepo: WikiRepository) : ViewModel() {
             SharingStarted.WhileSubscribed(stopTimeoutMillis = 5000),
             UiState.Loading
         )
+
+    sealed class AISummaryState {
+        data class Success(val summary: String) : AISummaryState()
+        data class Error(val message: String) : AISummaryState()
+        object Loading : AISummaryState()
+        object Empty : AISummaryState()
+    }
+
+    private val _aiSummaryState = MutableStateFlow<AISummaryState>(AISummaryState.Loading)
+    val aiSummaryState = _aiSummaryState.asStateFlow()
+
+    private var genAiJob: Job? = null
+
+    fun aiSummary() {
+        if (genAiJob?.isActive == true) {
+            Logger.d(tag = "GenAIRepository", message = "genAiJob is already running")
+            return
+        }
+        genAiJob = viewModelScope.launch {
+            val wikiItems: List<String> = wikiRepo.readLocalFavorites().map {
+                it.title
+            }
+            genAIRepository.summaryFavorite(wikiItems)
+                .onEach { result ->
+                    result.fold(
+                        onSuccess = { message ->
+                            Logger.d(
+                                tag = "FavVM",
+                                message = "summary success: $message"
+                            )
+                            if (message.isEmpty()) {
+                                _aiSummaryState.update {
+                                    AISummaryState.Empty
+                                }
+                            } else {
+                                _aiSummaryState.update {
+                                    AISummaryState.Success(message)
+                                }
+                            }
+                        }, onFailure = { error ->
+                            Logger.e(
+                                tag = "FavVM",
+                                message = "summary error: ${error.message}"
+                            )
+                            _aiSummaryState.update {
+                                AISummaryState.Error(error.message ?: "Unknown Error")
+                            }
+                        }
+                    )
+                }.first()
+        }
+    }
 
     private val _searchQuery = MutableStateFlow<String>("")
     val searchQuery = _searchQuery.asStateFlow()

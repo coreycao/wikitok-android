@@ -24,6 +24,12 @@ android {
         versionCode = 2
         versionName = "1.0.2"
 
+        val generativeApiKey = if (project.hasProperty("GENAI_API_KEY")) {
+            project.property("GENAI_API_KEY") as String
+        } else ""
+
+        buildConfigField("String", "GENAI_API_KEY", "\"$generativeApiKey\"")
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -80,6 +86,12 @@ android {
     }
 }
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
@@ -95,6 +107,9 @@ dependencies {
     implementation(libs.androidx.splash)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.startup)
+
+    // openai
+    implementation(libs.openai.client)
 
     // room
     implementation(libs.room.runtime)

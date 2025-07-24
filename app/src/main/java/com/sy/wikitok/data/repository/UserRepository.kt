@@ -25,19 +25,10 @@ class UserRepository(
     private val dataStore: DataStore<Preferences>
 ) {
 
-    companion object {
-        val KEY_LANG = stringPreferencesKey("lang")
-    }
-
     suspend fun updateLanguage(lang: Language) {
         dataStore.edit { preference ->
             preference[KEY_LANG] = lang.id
         }
-    }
-
-    fun observeLanguageSetting() = dataStore.data.map { preference ->
-        val langId = preference[KEY_LANG] ?: DEFAULT_LANG_ID
-        Langs[langId] ?: DEFAULT_LANGUAGE
     }
 
     fun observeAppVersion(): Flow<Result<AppUpdateInfo>> = appUpdateApiService.observerVersionInfo()

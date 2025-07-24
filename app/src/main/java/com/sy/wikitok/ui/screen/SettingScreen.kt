@@ -31,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,9 +57,10 @@ import com.sy.wikitok.R
 import com.sy.wikitok.data.Langs
 import com.sy.wikitok.data.Language
 import com.sy.wikitok.ui.component.NetworkImage
-import com.sy.wikitok.ui.screen.MainViewModel.SettingDialogState.AppUpdateDialog
+import com.sy.wikitok.ui.screen.SettingViewModel.SettingDialogState.AppUpdateDialog
 import com.sy.wikitok.utils.Logger
 import com.sy.wikitok.utils.SnackbarManager
+import org.koin.androidx.compose.koinViewModel
 
 /**
  * @author Yeung
@@ -68,68 +70,77 @@ import com.sy.wikitok.utils.SnackbarManager
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingScreen(
-    mainViewModel: MainViewModel,
     modifier: Modifier = Modifier,
+    settingViewModel: SettingViewModel = koinViewModel()
 ) {
-    val dialogState = mainViewModel.settingDialogState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        Logger.d("SettingScreen:LaunchedEffect")
+    }
+
+    val dialogState = settingViewModel.settingDialogState.collectAsStateWithLifecycle()
+
     Box(modifier = modifier.fillMaxSize()) {
         when (dialogState.value) {
             is AppUpdateDialog -> {
                 val checkState = (dialogState.value as AppUpdateDialog).checkedSuccess
-                Logger.d(tag = "SettingDialogState", message = "checkSuccess: $checkState")
                 if (checkState) {
                     val upgradeInfo = (dialogState.value as AppUpdateDialog).versionInfo!!
                     Logger.d(
-                        tag = "SettingDialogState",
-                        message = "newVersion: ${upgradeInfo.hasUpdate}"
+                        tag = "SettingScreen",
+                        message = "check upgrade success, newVersion: ${upgradeInfo.hasUpdate}"
                     )
-                    // todo: show upgrade dialog
-                    SnackbarManager.showSnackbar("new version found: ${upgradeInfo.latestVersion}")
+                    // TODO: show upgrade dialog
+                    SnackbarManager.showSnackbar(
+                        "new version found: ${upgradeInfo.latestVersion}",
+                        actionLabel = "Upgrade",
+                        onAction = settingViewModel::showAboutMessageDialog
+                    )
                 } else {
+                    Logger.d(tag = "SettingScreen", message = "check upgrade failed")
                     SnackbarManager.showSnackbar(stringResource(R.string.snakebar_uptodate))
                 }
             }
 
-            is MainViewModel.SettingDialogState.AboutMessageDialog -> {
+            is SettingViewModel.SettingDialogState.AboutMessageDialog -> {
                 val urlHandler = LocalUriHandler.current
                 val strUrl = "https://github.com/coreycao/wikitok-android"
+                val link = LinkAnnotation.Url(
+                    strUrl,
+                    styles = TextLinkStyles(SpanStyle(color = Color.Blue))
+                ) {
+                    val url = (it as LinkAnnotation.Url).url
+                    urlHandler.openUri(url)
+                }
                 val annotatedText = buildAnnotatedString {
                     append(
                         "This App is opensource\n\nFind it on Github\n\n"
                     )
-                    val link = LinkAnnotation.Url(
-                        strUrl,
-                        styles = TextLinkStyles(SpanStyle(color = Color.Blue))
-                    ) {
-                        val url = (it as LinkAnnotation.Url).url
-                        urlHandler.openUri(url)
-                    }
                     withLink(link) {
                         append(strUrl)
                     }
                 }
                 MessageDialog(annotatedText) {
-                    mainViewModel.dismissDialog()
+                    settingViewModel.dismissDialog()
                 }
             }
 
-            is MainViewModel.SettingDialogState.LanguageOption -> {
+            is SettingViewModel.SettingDialogState.LanguageOption -> {
                 val langOptions = Langs.values.toList()
                 SelectOptionDialog(
                     options = langOptions,
                     onOptionSelected = { option ->
-                        mainViewModel.changeLanguage(option)
-                        mainViewModel.dismissDialog()
+                        settingViewModel.changeLanguage(option)
+                        settingViewModel.dismissDialog()
                     },
                     onDismissRequest = {
-                        mainViewModel.dismissDialog()
+                        settingViewModel.dismissDialog()
                     }
                 )
             }
 
-            is MainViewModel.SettingDialogState.ExportFavorite -> {
-                (dialogState.value as MainViewModel.SettingDialogState.ExportFavorite)
+            is SettingViewModel.SettingDialogState.ExportFavorite -> {
+                (dialogState.value as SettingViewModel.SettingDialogState.ExportFavorite)
                     .result.fold(onSuccess = {
                         if (it.isBlank()) {
                             SnackbarManager.showSnackbar("Export failed, you have no favorite wikis.")
@@ -138,55 +149,60 @@ fun SettingScreen(
                                 type = "text/plain"
                                 putExtra(Intent.EXTRA_TEXT, it)
                             }
-                            context.startActivity(Intent.createChooser(intent, "Share"))
+                            LocalContext.current.startActivity(
+                                Intent.createChooser(
+                                    intent,
+                                    "Share"
+                                )
+                            )
                         }
                     }, onFailure = {
-                        Logger.d(tag = "SettingDialogState", message = "export error: $it")
+                        Logger.d(tag = "SettingScreen", message = "export error: $it")
                         SnackbarManager.showSnackbar("Export failed, try again")
                     })
             }
 
-            is MainViewModel.SettingDialogState.None -> {
+            is SettingViewModel.SettingDialogState.None -> {
                 // do nothing, just dismiss the dialogs.
             }
         }
 
         Column {
             TopBar(
-                modifier = modifier
+                modifier = Modifier
                     .padding(horizontal = 16.dp)
                     .height(56.dp)
                     .fillMaxWidth()
             )
-            LazyColumn(modifier = modifier.padding(horizontal = 8.dp)) {
+            LazyColumn(modifier = Modifier.padding(horizontal = 8.dp)) {
                 item {
                     SettingsItem(
                         Icons.Filled.Place,
                         stringResource(R.string.txt_setting_item_language),
                         stringResource(R.string.txt_setting_item_language_hint)
                     ) {
-                        mainViewModel.showLanguageOptionDialog()
+                        settingViewModel.showLanguageOptionDialog()
                     }
                     SettingsItem(
                         Icons.AutoMirrored.Default.Send,
                         stringResource(R.string.txt_setting_item_export),
                         stringResource(R.string.txt_setting_item_export_hint)
                     ) {
-                        mainViewModel.exportFavorite()
+                        settingViewModel.exportFavorite()
                     }
                     SettingsItem(
                         Icons.Filled.Refresh,
                         "${stringResource(R.string.txt_setting_item_version)}: ${BuildConfig.VERSION_NAME}",
                         stringResource(R.string.txt_setting_item_version_hint)
                     ) {
-                        mainViewModel.checkAppUpdate()
+                        settingViewModel.checkAppUpdate()
                     }
                     SettingsItem(
                         Icons.Default.Info,
                         stringResource(R.string.txt_setting_item_about),
                         stringResource(R.string.txt_setting_item_about_hint)
                     ) {
-                        mainViewModel.showAboutMessageDialog()
+                        settingViewModel.showAboutMessageDialog()
                     }
                 }
             }
@@ -216,7 +232,7 @@ fun SettingsItem(icon: Any, title: String, subtitle: String, action: () -> Unit 
                 interactionSource = remember { MutableInteractionSource() },
                 indication = ripple(bounded = true)
             ) {
-                Logger.d(tag = "SettingsItem", message = "click $title")
+                Logger.d(tag = "SettingScreen", message = "click setting item: $title")
                 action()
             }
             .padding(16.dp),

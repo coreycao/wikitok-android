@@ -10,6 +10,7 @@
     <string name="desc_fav_pic">收藏项目配图</string>
     <string name="desc_search_bar">搜索栏</string>
 
+    <string name="txt_feed_success">数据加载失败</string>
     <string name="txt_feed_error">数据加载失败</string>
     <string name="txt_screen_empty">没有数据</string>
     <string name="txt_read_more">阅读更多 >>></string>

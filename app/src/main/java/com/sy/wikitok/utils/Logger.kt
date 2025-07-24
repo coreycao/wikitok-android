@@ -9,7 +9,7 @@ import android.util.Log
 object Logger {
     private var logLevel: LogLevel = LogLevel.DEBUG
     private var messageFormatter: (String?) -> String = { it -> it ?: "" }
-    private const val TAG = "[AppLogger]"
+    private const val TAG = "[App]"
 
     sealed class LogLevel(val priority: Int) {
         object VERBOSE : LogLevel(0)
@@ -44,9 +44,9 @@ object Logger {
         }
     }
 
-    fun v(message: String, tag: String = TAG) = log(LogLevel.VERBOSE, tag, message)
-    fun d(message: String, tag: String = TAG) = log(LogLevel.DEBUG, tag, message)
-    fun i(message: String, tag: String = TAG) = log(LogLevel.INFO, tag, message)
-    fun w(message: String, tag: String = TAG) = log(LogLevel.WARN, tag, message)
-    fun e(message: String, tag: String = TAG) = log(LogLevel.ERROR, tag, message)
+    fun v(message: String, tag: String = "") = log(LogLevel.VERBOSE, "$TAG$tag", message)
+    fun d(message: String, tag: String = "") = log(LogLevel.DEBUG, "$TAG$tag", message)
+    fun i(message: String, tag: String = "") = log(LogLevel.INFO, "$TAG$tag", message)
+    fun w(message: String, tag: String = "") = log(LogLevel.WARN, "$TAG$tag", message)
+    fun e(message: String, tag: String = "") = log(LogLevel.ERROR, "$TAG$tag", message)
 }

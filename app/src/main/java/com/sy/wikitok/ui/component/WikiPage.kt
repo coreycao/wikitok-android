@@ -2,9 +2,7 @@ package com.sy.wikitok.ui.component
 
 import android.content.Intent
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,17 +18,11 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -53,7 +45,7 @@ import com.sy.wikitok.data.model.WikiModel
 @Composable
 fun WikiPage(
     wikiModel: WikiModel,
-    onDoubleTab: (WikiModel) -> Unit = {},
+    onDoubleTapped: (WikiModel) -> Unit = {},
     onFavIconTapped: (WikiModel) -> Unit = {},
 ) {
     val context = LocalContext.current
@@ -64,112 +56,93 @@ fun WikiPage(
     val statusBarHeight = windowInsets?.getInsets(WindowInsetsCompat.Type.systemBars())?.top ?: 0
     val statusBarHeightDp = with(LocalDensity.current) { statusBarHeight.toDp() }
 
-    // State to trigger the heart animation once
-    var triggerHeartAnimation by remember { mutableStateOf(false) }
+    HeartAnimation(modifier = Modifier.fillMaxSize(), onAnimationEnd = { onDoubleTapped(wikiModel) }) {
+        NetworkImage(
+            modifier = Modifier.fillMaxSize(),
+            url = wikiModel.imgUrl,
+            contentScale = ContentScale.Crop,
+            contentDescription = stringResource(R.string.desc_feed_bg),
+        )
 
-    Surface(
-        modifier = Modifier
-            .fillMaxSize()
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onDoubleTap = {
-                        triggerHeartAnimation = true
-                    })
-            }) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            NetworkImage(
-                modifier = Modifier.fillMaxSize(),
-                url = wikiModel.imgUrl,
-                contentScale = ContentScale.Crop,
-                contentDescription = stringResource(R.string.desc_feed_bg),
-            )
-
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.BottomCenter)
-                    .padding(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.6f)),
-                shape = MaterialTheme.shapes.small,
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = wikiModel.title,
-                            color = Color.White,
-                            fontSize = MaterialTheme.typography.titleLarge.fontSize,
-                            modifier = Modifier.weight(1f),
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Icon(
-                            imageVector = Icons.Filled.Favorite,
-                            contentDescription = stringResource(R.string.desc_nav_favorite),
-                            tint = if (wikiModel.isFavorite) Color.Red else Color.Gray,
-                            modifier = Modifier
-                                .clickable {
-                                    onFavIconTapped(wikiModel)
-                                }
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .padding(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.6f)),
+            shape = MaterialTheme.shapes.small,
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     Text(
-                        text = wikiModel.content,
-                        color = Color.White.copy(alpha = 0.8f),
-                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                        maxLines = 5,
+                        text = wikiModel.title,
+                        color = Color.White,
+                        fontSize = MaterialTheme.typography.titleLarge.fontSize,
+                        modifier = Modifier.weight(1f),
                         overflow = TextOverflow.Ellipsis
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(id = R.string.txt_read_more),
-                        color = Color.White,
-                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                        textAlign = TextAlign.End,
+                    Icon(
+                        imageVector = Icons.Filled.Favorite,
+                        contentDescription = stringResource(R.string.desc_nav_favorite),
+                        tint = if (wikiModel.isFavorite) Color.Red else Color.Gray,
                         modifier = Modifier
-                            .fillMaxWidth()
                             .clickable {
-                                val uri = wikiModel.linkUrl.toUri().run {
-                                    if (scheme.isNullOrBlank()) {
-                                        buildUpon().scheme("https").build()
-                                    } else {
-                                        this
-                                    }
-                                }
-                                context.startActivity(
-                                    Intent(Intent.ACTION_VIEW, uri)
-                                )
+                                onFavIconTapped(wikiModel)
                             }
                     )
                 }
-            }
-
-            Icon(
-                imageVector = Icons.Filled.Share,
-                contentDescription = stringResource(R.string.desc_nav_share),
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = statusBarHeightDp, end = 32.dp)
-                    .size(28.dp)
-                    .clickable {
-                        val intent = Intent(Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(Intent.EXTRA_TEXT, "${wikiModel.title}: ${wikiModel.linkUrl}")
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = wikiModel.content,
+                    color = Color.White.copy(alpha = 0.8f),
+                    fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                    maxLines = 5,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(id = R.string.txt_read_more),
+                    color = Color.White,
+                    fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            val uri = wikiModel.linkUrl.toUri().run {
+                                if (scheme.isNullOrBlank()) {
+                                    buildUpon().scheme("https").build()
+                                } else {
+                                    this
+                                }
+                            }
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, uri)
+                            )
                         }
-                        context.startActivity(Intent.createChooser(intent, "Share"))
-                    }
-            )
-            // Heart animation
-            HeartAnimation(
-                triggerAnimation = triggerHeartAnimation,
-                onAnimationEnd = { onDoubleTab(wikiModel) },
-                modifier = Modifier.align(Alignment.Center)
-            )
+                )
+            }
         }
+
+        Icon(
+            imageVector = Icons.Filled.Share,
+            contentDescription = stringResource(R.string.desc_nav_share),
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = statusBarHeightDp, end = 32.dp)
+                .size(28.dp)
+                .clickable {
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TEXT, "${wikiModel.title}: ${wikiModel.linkUrl}")
+                    }
+                    context.startActivity(Intent.createChooser(intent, "Share"))
+                }
+        )
     }
 }
 

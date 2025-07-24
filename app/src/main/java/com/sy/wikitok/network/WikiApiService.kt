@@ -1,15 +1,33 @@
 package com.sy.wikitok.network
 
+import com.sy.wikitok.data.model.WikiApiResponse
+import com.sy.wikitok.data.repository.WikiRepository
 import com.sy.wikitok.utils.Logger
 import io.ktor.client.HttpClient
+import io.ktor.client.call.body
 import io.ktor.client.request.get
 import kotlinx.coroutines.flow.flow
+import kotlinx.serialization.json.Json
 
 /**
  * @author Yeung
  * @date 2025/3/18
  */
 class WikiApiService(private val httpClient: HttpClient) : BaseApiService {
+
+    /*fun fetchWikiDetail(api: String, title: String) {
+        val response = httpClient.get(api) {
+            url {
+                parameters.apply {
+                    append("action", "query")      // 基础操作类型：数据查询
+                    append("format", "json")       // 响应格式为JSON
+                    append("prop", "extracts") // 要获取的属性：摘要/页面信息/图片
+                    append("explaintext", "1")     // 返回纯文本而非HTML
+                    append("titles", title)     // 返回纯文本而非HTML
+                }
+            }
+        }
+    }*/
 
     /**
      * 请求维基百科随机页面列表
@@ -22,7 +40,7 @@ class WikiApiService(private val httpClient: HttpClient) : BaseApiService {
      * - exintro 与 exsentences 配合使用可控制摘要长度
      */
     fun observerWikiList(api: String, count: Int = 20) = flow {
-        try {
+        emit(runCatching {
             val response = httpClient.get(api) {
                 url {
                     parameters.apply {
@@ -45,10 +63,8 @@ class WikiApiService(private val httpClient: HttpClient) : BaseApiService {
                 }
             }
             Logger.i(tag = "ApiService", message = "requestWiki success")
-            emit(Result.success(response))
-        } catch (e: Exception) {
-            Logger.e(tag = "ApiService", message = "requestWiki error: ${e.message}")
-            emit(Result.failure(e))
+            response.body<WikiApiResponse>()
         }
+        )
     }
 }

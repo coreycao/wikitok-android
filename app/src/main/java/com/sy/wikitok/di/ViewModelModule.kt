@@ -2,7 +2,7 @@ package com.sy.wikitok.di
 
 import com.sy.wikitok.ui.screen.FavoriteViewModel
 import com.sy.wikitok.ui.screen.FeedViewModel
-import com.sy.wikitok.ui.screen.MainViewModel
+import com.sy.wikitok.ui.screen.SettingViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
@@ -15,7 +15,7 @@ import org.koin.dsl.module
  */
 
 val viewModelModule = module {
-    viewModel { MainViewModel(get(), get()) }
+    viewModel { SettingViewModel(get(), get()) }
     viewModel { FeedViewModel(get(), get()) }
-    viewModel { FavoriteViewModel(get()) }
+    viewModel { FavoriteViewModel(get(), get()) }
 }

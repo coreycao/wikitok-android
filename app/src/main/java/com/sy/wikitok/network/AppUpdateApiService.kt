@@ -25,24 +25,20 @@ class AppUpdateApiService(private val httpClient: HttpClient) : BaseApiService {
      */
     @OptIn(ExperimentalSerializationApi::class)
     fun observerVersionInfo() = flow {
-        try {
-            val response = httpClient.get(ENDPOINT)
-            val responseBody = response.bodyAsText()
-            val json = Json {
-                allowTrailingComma = true
+        emit(
+            runCatching {
+                val response = httpClient.get(ENDPOINT)
+                val responseBody = response.bodyAsText()
+                val json = Json {
+                    allowTrailingComma = true
+                }
+                val appUpdateInfo = json.decodeFromString<AppUpdateInfo>(responseBody)
+                Logger.i(
+                    tag = "AppUpdateApiService",
+                    message = "requestVersionInfo success"
+                )
+                appUpdateInfo
             }
-            val appUpdateInfo = json.decodeFromString<AppUpdateInfo>(responseBody)
-            Logger.i(
-                tag = "AppUpdateApiService",
-                message = "requestVersionInfo success"
-            )
-            emit(Result.success(appUpdateInfo))
-        } catch (e: Exception) {
-            Logger.e(
-                tag = "AppUpdateApiService",
-                message = "requestVersionInfo error: ${e.message}"
-            )
-            emit(Result.failure(e))
-        }
+        )
     }
 }

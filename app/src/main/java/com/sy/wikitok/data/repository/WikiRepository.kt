@@ -1,14 +1,29 @@
 package com.sy.wikitok.data.repository
 
-import com.sy.wikitok.data.Language
+import android.content.res.AssetManager
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import com.sy.wikitok.data.DEFAULT_LANGUAGE
+import com.sy.wikitok.data.DEFAULT_LANG_ID
+import com.sy.wikitok.data.Langs
 import com.sy.wikitok.data.db.FavoriteDao
 import com.sy.wikitok.data.db.FeedDao
 import com.sy.wikitok.data.db.WikiEntity
+import com.sy.wikitok.data.model.WikiApiResponse
 import com.sy.wikitok.data.model.WikiModel
 import com.sy.wikitok.data.model.toWikiModel
 import com.sy.wikitok.data.model.toFavoriteEntity
+import com.sy.wikitok.data.model.toWikiModelList
 import com.sy.wikitok.network.WikiApiService
+import com.sy.wikitok.utils.Logger
+import com.sy.wikitok.utils.loadJsonFromAssetsAsFlow
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import kotlinx.serialization.json.Json
 
 /**
  * @author Yeung
@@ -17,8 +32,52 @@ import kotlinx.coroutines.flow.map
 class WikiRepository(
     private val wikiApiService: WikiApiService,
     private val feedDao: FeedDao,
-    private val favDao: FavoriteDao
+    private val favDao: FavoriteDao,
+    private val dataStore: DataStore<Preferences>,
+    private val assets: AssetManager
 ) {
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val observableRemoteWikiFeed = observeLanguageSetting()
+        .flatMapLatest { language ->
+            Logger.d("Language Changed: ${language.name}")
+            wikiApiService.observerWikiList(language.api)
+                .onEach {
+                    if (it.isSuccess) {
+                        Logger.d(tag = "WikiRepository", message = "feedRemote: success")
+                        val list = it.getOrThrow().toWikiModelList()
+                        Logger.d(
+                            tag = "WikiRepository",
+                            message = "feedRemote: success, count: ${list.size}"
+                        )
+                        saveAndMergeWikiList(list)
+                    } else {
+                        Logger.e(
+                            tag = "WikiRepository",
+                            message = "feedRemote, failure: ${it.exceptionOrNull()}"
+                        )
+                    }
+                }
+        }
+
+    private fun observeLanguageSetting() = dataStore.data.map { preference ->
+        val langId = preference[KEY_LANG] ?: DEFAULT_LANG_ID
+        Langs[langId] ?: DEFAULT_LANGUAGE
+    }
+
+    companion object {
+        const val WIKI_ASSET = "wiki.json"
+    }
+
+    fun readFeedFromAsset(): Flow<Result<WikiApiResponse>> {
+        return assets.loadJsonFromAssetsAsFlow(WIKI_ASSET)
+            .map { jsonString ->
+                delay(5000)
+                val json = Json { ignoreUnknownKeys = true }
+                val wikiResponse = json.decodeFromString<WikiApiResponse>(jsonString ?: "")
+                Result.success(wikiResponse)
+            }
+    }
 
     val observableFeed = feedDao.observerFeeds().map { entities ->
         entities.map { entity ->
@@ -26,15 +85,7 @@ class WikiRepository(
         }
     }
 
-    val favoriteUpdates = favDao.observeFavorites().map { entities ->
-        entities.map { entity ->
-            entity.toWikiModel()
-        }
-    }
-
-    fun observableRemoteFeed(language: Language) = wikiApiService.observerWikiList(language.api)
-
-    suspend fun saveAndMergeWikiList(list: List<WikiModel>) {
+    private suspend fun saveAndMergeWikiList(list: List<WikiModel>) {
         val favoriteSet = favDao.readAllFavorites().map {
             it.id
         }.toSet()
@@ -63,6 +114,12 @@ class WikiRepository(
             // the item onTapped is not in the favorite list
             // add it to the favorite list
             favDao.upsertFavorite(wikiModel.toFavoriteEntity())
+        }
+    }
+
+    val favoriteUpdates = favDao.observeFavorites().map { entities ->
+        entities.map { entity ->
+            entity.toWikiModel()
         }
     }
 

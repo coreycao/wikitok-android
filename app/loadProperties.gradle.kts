@@ -11,4 +11,8 @@ if (propertiesFile.exists()) {
         project.extensions.extraProperties.set("RELEASE_KEY_ALIAS", properties.getProperty("KEY_ALIAS"))
         project.extensions.extraProperties.set("RELEASE_KEY_PASSWORD", properties.getProperty("KEY_PASSWORD"))
     }
+
+    if (properties.containsKey("GENAI_API_KEY")) {
+        project.extensions.extraProperties.set("GENAI_API_KEY", properties.getProperty("GENAI_API_KEY"))
+    }
 }

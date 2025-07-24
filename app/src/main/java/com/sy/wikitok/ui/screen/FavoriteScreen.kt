@@ -1,5 +1,6 @@
 package com.sy.wikitok.ui.screen
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -8,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
@@ -20,7 +23,11 @@ import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,6 +43,8 @@ import com.sy.wikitok.data.model.WikiModel
 import com.sy.wikitok.ui.component.DismissFavItem
 import com.sy.wikitok.ui.component.FavItem
 import com.sy.wikitok.ui.component.ImageBrowser
+import com.sy.wikitok.ui.component.MarkdownPreview
+import com.sy.wikitok.ui.component.RotationFAB
 import com.sy.wikitok.ui.component.rememberImageBrowserState
 import com.sy.wikitok.ui.screen.FavoriteViewModel.UiState
 import com.sy.wikitok.utils.Logger
@@ -47,11 +56,14 @@ import org.koin.androidx.compose.koinViewModel
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FavoriteScreen() {
+fun FavoriteScreen(
+    modifier: Modifier = Modifier,
+    favoriteViewModel: FavoriteViewModel = koinViewModel()
+) {
 
-    val favoriteViewModel = koinViewModel<FavoriteViewModel>()
-
-    Logger.d(tag = "FavoriteScreen", message = favoriteViewModel.toString())
+    LaunchedEffect(Unit) {
+        Logger.d("FavoriteScreen LaunchedEffect")
+    }
 
     val favoriteUIState by favoriteViewModel.favorites.collectAsStateWithLifecycle()
 
@@ -66,7 +78,7 @@ fun FavoriteScreen() {
                 favoriteList = favoriteList
             )*/
             FavoriteListScreen(
-                modifier = Modifier.fillMaxSize(),
+                modifier = modifier.fillMaxSize(),
                 favoriteList = favoriteList,
                 onItemRemoved = favoriteViewModel::deleteFavorite,
             )
@@ -82,32 +94,84 @@ fun FavoriteListScreen(
     onItemRemoved: (WikiModel) -> Unit,
     onItemImageTap: (WikiModel) -> Unit = { _ -> }
 ) {
-    val fullScreenImageState = rememberImageBrowserState()
+    val imageBrowserState = rememberImageBrowserState()
 
-    LazyColumn(
-        modifier = modifier,
-        contentPadding = PaddingValues(8.dp)
-    ) {
-        val itemModifier = Modifier.fillMaxWidth()
-        items(
-            count = favoriteList.size,
-            key = { index -> favoriteList[index].id }
-        ) { index ->
-            DismissFavItem(
-                favoriteList[index],
-                modifier = itemModifier,
-                onImageTap = { wikiModel ->
-                    fullScreenImageState.show(wikiModel.imgUrl)
-                    onItemImageTap(wikiModel)
-                },
-                onDelete = onItemRemoved
-            )
+    val viewModel = koinViewModel<FavoriteViewModel>()
+
+    val aiSummaryState by viewModel.aiSummaryState.collectAsStateWithLifecycle()
+
+    var expanded by remember { mutableStateOf(false) }
+
+    Box(modifier = modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(8.dp)
+        ) {
+            val itemModifier = Modifier.fillMaxWidth()
+            items(
+                count = favoriteList.size,
+                key = { index -> favoriteList[index].id }
+            ) { index ->
+                DismissFavItem(
+                    favoriteList[index],
+                    modifier = itemModifier,
+                    onImageTap = { wikiModel ->
+                        imageBrowserState.show(wikiModel.imgUrl)
+                        onItemImageTap(wikiModel)
+                    },
+                    onDelete = onItemRemoved
+                )
+            }
         }
+
+        AnimatedVisibility(visible = expanded) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.White)
+                    .verticalScroll(rememberScrollState() )
+            ) {
+                when (aiSummaryState) {
+                    is FavoriteViewModel.AISummaryState.Loading -> {
+                        LoadingScreen()
+                    }
+
+                    is FavoriteViewModel.AISummaryState.Empty->{
+                        EmptyScreen()
+                    }
+
+                    is FavoriteViewModel.AISummaryState.Error -> {
+                        ErrorScreen()
+                    }
+
+                    is FavoriteViewModel.AISummaryState.Success -> {
+                        val summaryContent = (aiSummaryState as FavoriteViewModel.AISummaryState.Success).summary
+                        MarkdownPreview(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            text = summaryContent
+                        )
+                    }
+                }
+            }
+        }
+
+        RotationFAB(
+            onClick = {
+                expanded = !expanded
+                if (expanded){
+                    viewModel.aiSummary()
+                }
+            },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        )
     }
 
-
     ImageBrowser(
-        fullScreenImageState,
+        imageBrowserState,
         modifier = Modifier.background(Color.Black.copy(alpha = 0.9f))
     )
 }
@@ -230,8 +294,6 @@ fun SearchScreen(
                 }
             }
         }
-
-
 
         FavoriteListScreen(
             modifier = Modifier

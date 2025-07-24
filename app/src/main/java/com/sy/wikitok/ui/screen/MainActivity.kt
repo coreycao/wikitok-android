@@ -68,6 +68,87 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
+@Composable
+private fun HomeScaffold() {
+
+    val navController = rememberNavController()
+
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(key1 = snackbarHostState) {
+        SnackbarManager.snackbarFlow.collect { snackbarData ->
+            if (snackbarData != null) {
+                val result = snackbarHostState.showSnackbar(
+                    message = snackbarData.message,
+                    actionLabel = snackbarData.actionLabel,
+                    duration = snackbarData.duration
+                )
+                when (result) {
+                    androidx.compose.material3.SnackbarResult.ActionPerformed -> {
+                        snackbarData.onAction?.invoke()
+                    }
+                    androidx.compose.material3.SnackbarResult.Dismissed -> {
+                        // Snackbar closed
+                    }
+                }
+            }
+        }
+    }
+
+    Scaffold(
+        bottomBar = {
+            NavigationBar(
+                modifier = Modifier
+                    .height(96.dp)
+            ) {
+                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                val currentDestination = navBackStackEntry?.destination
+                NavBarItem.items.forEach { navBarItem ->
+                    NavigationBarItem(
+                        selected = currentDestination?.hierarchy?.any { it.route == navBarItem.screenRoute } == true,
+                        onClick = {
+                            navController.navigate(navBarItem.screenRoute) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
+                        icon = navBarItem.icon
+                    )
+                }
+            }
+        },
+        snackbarHost = {
+            SnackbarHost(snackbarHostState)
+        }
+    ) { innerPadding ->
+        NavHost(
+            navController = navController,
+            startDestination = ROUTE_FEED,
+            modifier = Modifier
+                .consumeWindowInsets(innerPadding)
+                .padding(bottom = innerPadding.calculateBottomPadding())
+        ) {
+
+            composable(ROUTE_FEED) {
+                FeedScreen()
+            }
+
+            composable(ROUTE_FAVORITE) {
+                FavoriteScreen(modifier = Modifier.padding(top = innerPadding.calculateTopPadding()))
+            }
+
+            composable(ROUTE_SETTING) {
+                SettingScreen(modifier = Modifier.padding(top = innerPadding.calculateTopPadding()))
+            }
+        }
+    }
+}
+
+// bottom navbar item
 private class NavBarItem(
     val screenRoute: String,
     val icon: @Composable () -> Unit = {},
@@ -93,105 +174,5 @@ private class NavBarItem(
                 )
             }
         )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
-@Composable
-private fun HomeScaffold() {
-
-    val navController = rememberNavController()
-
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    val mainViewModel = koinViewModel<MainViewModel>()
-
-    val feedViewModel = koinViewModel<FeedViewModel>()
-
-    LaunchedEffect(key1 = snackbarHostState){
-        SnackbarManager.snackbarFlow.collect { snackbarData ->
-            if (snackbarData != null) {
-                val result = snackbarHostState.showSnackbar(
-                    message = snackbarData.message,
-                    actionLabel = snackbarData.actionLabel,
-                    duration = snackbarData.duration
-                )
-                when (result) {
-                    androidx.compose.material3.SnackbarResult.ActionPerformed -> {
-                        snackbarData.onAction?.invoke()
-                    }
-                    androidx.compose.material3.SnackbarResult.Dismissed -> {
-                        // Snackbar closed
-                    }
-                }
-            }
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        Logger.d(tag = "MainActivity", message = "initFeedData")
-        feedViewModel.initFeedData()
-    }
-
-    Scaffold(
-        bottomBar = {
-            NavigationBar(
-                modifier = Modifier
-                    .height(96.dp)
-            ) {
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentDestination = navBackStackEntry?.destination
-                NavBarItem.items.forEach { navBarItem ->
-                    NavigationBarItem(
-                        selected = currentDestination?.hierarchy?.any { it.route == navBarItem.screenRoute } == true,
-                        onClick = {
-                            navController.navigate(navBarItem.screenRoute) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                            // currentRoute = navBarItem.screenRoute
-                        },
-                        icon = navBarItem.icon
-                    )
-                }
-            }
-        },
-        snackbarHost = {
-            SnackbarHost(snackbarHostState)
-        }
-    ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = ROUTE_FEED,
-            modifier = Modifier
-                .consumeWindowInsets(innerPadding)
-                .padding(bottom = innerPadding.calculateBottomPadding())
-        ) {
-
-            composable(ROUTE_FEED) {
-                FeedScreen(feedViewModel)
-            }
-
-            composable(ROUTE_FAVORITE) {
-                Surface(
-                    modifier = Modifier
-                        .padding(top = innerPadding.calculateTopPadding())
-                ) {
-                    FavoriteScreen()
-                }
-            }
-
-            composable(ROUTE_SETTING) {
-                Surface(
-                    modifier = Modifier
-                        .padding(top = innerPadding.calculateTopPadding())
-                ) {
-                    SettingScreen(mainViewModel)
-                }
-            }
-        }
     }
 }

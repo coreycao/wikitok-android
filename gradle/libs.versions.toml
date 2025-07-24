@@ -1,7 +1,7 @@
 [versions]
-android-compileSdk = "35"
+android-compileSdk = "36"
 android-minSdk = "30"
-android-targetSdk = "35"
+android-targetSdk = "36"
 
 agp = "8.11.1"
 kotlin = "2.2.0"
@@ -25,6 +25,7 @@ navigationCompose = "2.9.1"
 datastore = "1.1.7"
 startup = "1.2.0"
 kotlinx-datetime = "0.7.0-0.6.x-compat"
+openaiClient = "4.0.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -75,6 +76,9 @@ koin-androidx-compose = { group = "io.insert-koin", name = "koin-androidx-compos
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 coil-network = { group = "io.coil-kt.coil3", name = "coil-network-ktor3", version.ref = "coil" }
 coil-svg = { group = "io.coil-kt.coil3", name = "coil-svg", version.ref = "coil" }
+
+# unofficial openai kotlin client sdk
+openai-client = { module = "com.aallam.openai:openai-client", version.ref = "openaiClient" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

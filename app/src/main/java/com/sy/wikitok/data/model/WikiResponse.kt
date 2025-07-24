@@ -65,3 +65,9 @@ data class Thumbnail(
     val width: Int,
     val height: Int
 )
+
+fun WikiApiResponse.toWikiModelList(): List<WikiModel> {
+    return this.query.pages
+        .filter { it.value.thumbnail != null }
+        .map { it.value.toWikiModel() }
+}
