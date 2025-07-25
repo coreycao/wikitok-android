@@ -1,5 +1,6 @@
 package com.sy.wikitok.di
 
+import com.sy.wikitok.ui.screen.ChatViewModel
 import com.sy.wikitok.ui.screen.FavoriteViewModel
 import com.sy.wikitok.ui.screen.FeedViewModel
 import com.sy.wikitok.ui.screen.SettingViewModel
@@ -18,4 +19,5 @@ val viewModelModule = module {
     viewModel { SettingViewModel(get(), get()) }
     viewModel { FeedViewModel(get(), get()) }
     viewModel { FavoriteViewModel(get(), get()) }
+    viewModel { ChatViewModel(get()) }
 }

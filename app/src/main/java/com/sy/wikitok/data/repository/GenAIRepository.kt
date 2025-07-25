@@ -36,6 +36,11 @@ class GenAIRepository(private val wikiApiService: WikiApiService) {
             你是一名小助手，善于洞察和总结。
             在接下来的对话中，请你根据我的问题，给出答案。
             """
+        const val CHAT_SYSTEM_PROMPT = """
+            你是一名 AI 智能助理，拥有丰富的百科知识，并且擅长耐心地向他们讲解相关的知识。
+            在接下来的对话中，请你根据用户的问题，给出耐心的回复。
+            对于不清楚、不知道的东西，你一律回答不知道就好。
+        """
     }
 
     private fun genAIClient() = OpenAI(
@@ -45,10 +50,14 @@ class GenAIRepository(private val wikiApiService: WikiApiService) {
     )
 
     private fun modelId() = ModelId(MODEL_ID)
+    private val summaryAIClient = OpenAI(
+        token = BuildConfig.GENAI_API_KEY,
+        timeout = Timeout(socket = 60.seconds),
+        host = OpenAIHost(AI_HOST),
+    )
 
     fun summaryFavorite(items: List<String>) = flow {
         emit(runCatching {
-            val openai = genAIClient()
             val chatCompletionRequest = ChatCompletionRequest(
                 model = modelId(),
                 messages = listOf(
@@ -68,7 +77,7 @@ class GenAIRepository(private val wikiApiService: WikiApiService) {
                     )
                 )
             )
-            val completion: ChatCompletion = openai.chatCompletion(chatCompletionRequest)
+            val completion: ChatCompletion = summaryAIClient.chatCompletion(chatCompletionRequest)
             val responseMessage = completion.choices.first().message.content
             Logger.d(
                 tag = "GenAIRepository",
@@ -77,6 +86,39 @@ class GenAIRepository(private val wikiApiService: WikiApiService) {
             responseMessage ?: ""
         })
     }
+
+    private val chatbot = OpenAI(
+        token = BuildConfig.GENAI_API_KEY,
+        timeout = Timeout(socket = 20.seconds),
+        host = OpenAIHost(AI_HOST),
+    )
+
+    suspend fun sendMessage(messageItemList: List<ChatMessage>): Result<String> {
+        val chatCompletionRequest = ChatCompletionRequest(
+            model = modelId(),
+            messages = messageItemList.toMutableList().apply {
+                add(
+                    0, ChatMessage(
+                        role = ChatRole.System,
+                        content = CHAT_SYSTEM_PROMPT
+                    )
+                )
+            }
+        )
+        return try {
+            val completion = chatbot.chatCompletion(chatCompletionRequest)
+            val responseMessage = completion.choices.first().message.content
+
+            if (responseMessage == null) {
+                Result.failure(Exception("response is null"))
+            } else {
+                Result.success(responseMessage)
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
 
     suspend fun genContentWithTool() {
         val aiClient = genAIClient()

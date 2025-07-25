@@ -26,9 +26,11 @@ import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -73,107 +75,109 @@ fun SettingScreen(
     modifier: Modifier = Modifier,
     settingViewModel: SettingViewModel = koinViewModel()
 ) {
-
     LaunchedEffect(Unit) {
         Logger.d("SettingScreen:LaunchedEffect")
     }
 
-    val dialogState = settingViewModel.settingDialogState.collectAsStateWithLifecycle()
-
-    Box(modifier = modifier.fillMaxSize()) {
-        when (dialogState.value) {
-            is AppUpdateDialog -> {
-                val checkState = (dialogState.value as AppUpdateDialog).checkedSuccess
-                if (checkState) {
-                    val upgradeInfo = (dialogState.value as AppUpdateDialog).versionInfo!!
-                    Logger.d(
-                        tag = "SettingScreen",
-                        message = "check upgrade success, newVersion: ${upgradeInfo.hasUpdate}"
-                    )
-                    // TODO: show upgrade dialog
-                    SnackbarManager.showSnackbar(
-                        "new version found: ${upgradeInfo.latestVersion}",
-                        actionLabel = "Upgrade",
-                        onAction = settingViewModel::showAboutMessageDialog
-                    )
-                } else {
-                    Logger.d(tag = "SettingScreen", message = "check upgrade failed")
-                    SnackbarManager.showSnackbar(stringResource(R.string.snakebar_uptodate))
-                }
-            }
-
-            is SettingViewModel.SettingDialogState.AboutMessageDialog -> {
-                val urlHandler = LocalUriHandler.current
-                val strUrl = "https://github.com/coreycao/wikitok-android"
-                val link = LinkAnnotation.Url(
-                    strUrl,
-                    styles = TextLinkStyles(SpanStyle(color = Color.Blue))
-                ) {
-                    val url = (it as LinkAnnotation.Url).url
-                    urlHandler.openUri(url)
-                }
-                val annotatedText = buildAnnotatedString {
-                    append(
-                        "This App is opensource\n\nFind it on Github\n\n"
-                    )
-                    withLink(link) {
-                        append(strUrl)
-                    }
-                }
-                MessageDialog(annotatedText) {
-                    settingViewModel.dismissDialog()
-                }
-            }
-
-            is SettingViewModel.SettingDialogState.LanguageOption -> {
-                val langOptions = Langs.values.toList()
-                SelectOptionDialog(
-                    options = langOptions,
-                    onOptionSelected = { option ->
-                        settingViewModel.changeLanguage(option)
-                        settingViewModel.dismissDialog()
-                    },
-                    onDismissRequest = {
-                        settingViewModel.dismissDialog()
-                    }
-                )
-            }
-
-            is SettingViewModel.SettingDialogState.ExportFavorite -> {
-                (dialogState.value as SettingViewModel.SettingDialogState.ExportFavorite)
-                    .result.fold(onSuccess = {
-                        if (it.isBlank()) {
-                            SnackbarManager.showSnackbar("Export failed, you have no favorite wikis.")
-                        } else {
-                            val intent = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, it)
-                            }
-                            LocalContext.current.startActivity(
-                                Intent.createChooser(
-                                    intent,
-                                    "Share"
-                                )
-                            )
-                        }
-                    }, onFailure = {
-                        Logger.d(tag = "SettingScreen", message = "export error: $it")
-                        SnackbarManager.showSnackbar("Export failed, try again")
-                    })
-            }
-
-            is SettingViewModel.SettingDialogState.None -> {
-                // do nothing, just dismiss the dialogs.
-            }
-        }
-
-        Column {
-            TopBar(
-                modifier = Modifier
-                    .padding(horizontal = 16.dp)
-                    .height(56.dp)
-                    .fillMaxWidth()
+    Scaffold(
+        modifier = modifier,
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.app_name)) }
             )
+        }) { innerPadding ->
+
+        val dialogState = settingViewModel.settingDialogState.collectAsStateWithLifecycle()
+
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .padding(innerPadding)) {
+            when (dialogState.value) {
+                is AppUpdateDialog -> {
+                    val checkState = (dialogState.value as AppUpdateDialog).checkedSuccess
+                    if (checkState) {
+                        val upgradeInfo = (dialogState.value as AppUpdateDialog).versionInfo!!
+                        Logger.d(
+                            tag = "SettingScreen",
+                            message = "check upgrade success, newVersion: ${upgradeInfo.hasUpdate}"
+                        )
+                        // TODO: show upgrade dialog
+                        SnackbarManager.showSnackbar(
+                            "new version found: ${upgradeInfo.latestVersion}",
+                            actionLabel = "Upgrade",
+                            onAction = settingViewModel::showAboutMessageDialog
+                        )
+                    } else {
+                        Logger.d(tag = "SettingScreen", message = "check upgrade failed")
+                        SnackbarManager.showSnackbar(stringResource(R.string.snakebar_uptodate))
+                    }
+                }
+
+                is SettingViewModel.SettingDialogState.AboutMessageDialog -> {
+                    val urlHandler = LocalUriHandler.current
+                    val strUrl = "https://github.com/coreycao/wikitok-android"
+                    val link = LinkAnnotation.Url(
+                        strUrl,
+                        styles = TextLinkStyles(SpanStyle(color = Color.Blue))
+                    ) {
+                        val url = (it as LinkAnnotation.Url).url
+                        urlHandler.openUri(url)
+                    }
+                    val annotatedText = buildAnnotatedString {
+                        append(
+                            "This App is opensource\n\nFind it on Github\n\n"
+                        )
+                        withLink(link) {
+                            append(strUrl)
+                        }
+                    }
+                    MessageDialog(annotatedText) {
+                        settingViewModel.dismissDialog()
+                    }
+                }
+
+                is SettingViewModel.SettingDialogState.LanguageOption -> {
+                    val langOptions = Langs.values.toList()
+                    SelectOptionDialog(
+                        options = langOptions,
+                        onOptionSelected = { option ->
+                            settingViewModel.changeLanguage(option)
+                            settingViewModel.dismissDialog()
+                        },
+                        onDismissRequest = {
+                            settingViewModel.dismissDialog()
+                        }
+                    )
+                }
+
+                is SettingViewModel.SettingDialogState.ExportFavorite -> {
+                    (dialogState.value as SettingViewModel.SettingDialogState.ExportFavorite)
+                        .result.fold(onSuccess = {
+                            if (it.isBlank()) {
+                                SnackbarManager.showSnackbar("Export failed, you have no favorite wikis.")
+                            } else {
+                                val intent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, it)
+                                }
+                                LocalContext.current.startActivity(
+                                    Intent.createChooser(
+                                        intent,
+                                        "Share"
+                                    )
+                                )
+                            }
+                        }, onFailure = {
+                            Logger.d(tag = "SettingScreen", message = "export error: $it")
+                            SnackbarManager.showSnackbar("Export failed, try again")
+                        })
+                }
+
+                is SettingViewModel.SettingDialogState.None -> {
+                    // do nothing, just dismiss the dialogs.
+                }
+            }
+
             LazyColumn(modifier = Modifier.padding(horizontal = 8.dp)) {
                 item {
                     SettingsItem(
@@ -206,20 +210,8 @@ fun SettingScreen(
                     }
                 }
             }
-        }
-    }
-}
 
-@Composable
-private fun TopBar(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier,
-        contentAlignment = Alignment.CenterStart
-    ) {
-        Text(
-            text = stringResource(R.string.app_name),
-            style = MaterialTheme.typography.headlineMedium
-        )
+        }
     }
 }
 

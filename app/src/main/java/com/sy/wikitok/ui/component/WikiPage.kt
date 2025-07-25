@@ -47,6 +47,7 @@ fun WikiPage(
     wikiModel: WikiModel,
     onDoubleTapped: (WikiModel) -> Unit = {},
     onFavIconTapped: (WikiModel) -> Unit = {},
+    onDetailClicked:()->Unit={}
 ) {
     val context = LocalContext.current
 
@@ -112,7 +113,8 @@ fun WikiPage(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
-                            val uri = wikiModel.linkUrl.toUri().run {
+                            onDetailClicked()
+                            /*val uri = wikiModel.linkUrl.toUri().run {
                                 if (scheme.isNullOrBlank()) {
                                     buildUpon().scheme("https").build()
                                 } else {
@@ -121,7 +123,7 @@ fun WikiPage(
                             }
                             context.startActivity(
                                 Intent(Intent.ACTION_VIEW, uri)
-                            )
+                            )*/
                         }
                 )
             }

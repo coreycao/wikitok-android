@@ -68,6 +68,6 @@ data class Thumbnail(
 
 fun WikiApiResponse.toWikiModelList(): List<WikiModel> {
     return this.query.pages
-        .filter { it.value.thumbnail != null }
+        // .filter { it.value.thumbnail != null }
         .map { it.value.toWikiModel() }
 }

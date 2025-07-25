@@ -23,7 +23,11 @@ import org.koin.androidx.compose.koinViewModel
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FeedScreen(modifier: Modifier = Modifier, feedViewModel: FeedViewModel = koinViewModel()) {
+fun FeedScreen(modifier: Modifier = Modifier,
+               feedViewModel: FeedViewModel = koinViewModel(),
+               navigateToChat:()->Unit = {}
+
+) {
 
     LaunchedEffect(Unit) {
         Logger.d(message = "FeedScreen LaunchedEffect")
@@ -81,7 +85,8 @@ fun FeedScreen(modifier: Modifier = Modifier, feedViewModel: FeedViewModel = koi
                         },
                         onDoubleTapped = {
                             feedViewModel.onFavoriteToggled(wikiModel)
-                        }
+                        },
+                        onDetailClicked = navigateToChat
                     )
                 }
             }
