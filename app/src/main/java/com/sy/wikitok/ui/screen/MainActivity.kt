@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -35,21 +36,27 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.sy.wikitok.R
 import com.sy.wikitok.ui.theme.WikiTokTheme
-import com.sy.wikitok.utils.Logger
 import com.sy.wikitok.utils.SnackbarManager
 import kotlinx.coroutines.FlowPreview
+import kotlinx.serialization.Serializable
 import org.koin.androidx.compose.KoinAndroidContext
-import org.koin.androidx.compose.koinViewModel
 
 /**
  * @author Yeung
  * @date 2025/3/19
  */
 
-// Route
-private const val ROUTE_FEED = "feed"
-private const val ROUTE_FAVORITE = "favorite"
-private const val ROUTE_SETTING = "setting"
+@Serializable
+sealed class MainRoute {
+    @Serializable
+    object Feed : MainRoute()
+
+    @Serializable
+    object Favorite : MainRoute()
+
+    @Serializable
+    object Setting : MainRoute()
+}
 
 class MainActivity : ComponentActivity() {
 
@@ -106,9 +113,9 @@ private fun HomeScaffold() {
                 val currentDestination = navBackStackEntry?.destination
                 NavBarItem.items.forEach { navBarItem ->
                     NavigationBarItem(
-                        selected = currentDestination?.hierarchy?.any { it.route == navBarItem.screenRoute } == true,
+                        selected = currentDestination?.hierarchy?.any { it.hasRoute(navBarItem.route::class) } == true,
                         onClick = {
-                            navController.navigate(navBarItem.screenRoute) {
+                            navController.navigate(navBarItem.route) {
                                 popUpTo(navController.graph.findStartDestination().id) {
                                     saveState = true
                                 }
@@ -127,21 +134,21 @@ private fun HomeScaffold() {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = ROUTE_FEED,
+            startDestination = MainRoute.Feed,
             modifier = Modifier
                 .consumeWindowInsets(innerPadding)
                 .padding(bottom = innerPadding.calculateBottomPadding())
         ) {
 
-            composable(ROUTE_FEED) {
+            composable<MainRoute.Feed> {
                 FeedScreen()
             }
 
-            composable(ROUTE_FAVORITE) {
+            composable<MainRoute.Favorite> {
                 FavoriteScreen(modifier = Modifier.padding(top = innerPadding.calculateTopPadding()))
             }
 
-            composable(ROUTE_SETTING) {
+            composable<MainRoute.Setting> {
                 SettingScreen(modifier = Modifier.padding(top = innerPadding.calculateTopPadding()))
             }
         }
@@ -150,24 +157,24 @@ private fun HomeScaffold() {
 
 // bottom navbar item
 private class NavBarItem(
-    val screenRoute: String,
+    val route: MainRoute,
     val icon: @Composable () -> Unit = {},
 ) {
     companion object {
         val items = listOf(
-            NavBarItem(ROUTE_FEED) {
+            NavBarItem(MainRoute.Feed) {
                 Icon(
                     imageVector = Icons.Filled.Home,
                     contentDescription = stringResource(R.string.desc_nav_feed)
                 )
             },
-            NavBarItem(ROUTE_FAVORITE) {
+            NavBarItem(MainRoute.Favorite) {
                 Icon(
                     imageVector = Icons.Filled.Favorite,
                     contentDescription = stringResource(R.string.desc_nav_favorite),
                 )
             },
-            NavBarItem(ROUTE_SETTING) {
+            NavBarItem(MainRoute.Setting) {
                 Icon(
                     imageVector = Icons.Filled.Settings,
                     contentDescription = stringResource(R.string.desc_nav_setting),
