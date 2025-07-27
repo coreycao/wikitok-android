@@ -1,6 +1,11 @@
 package com.sy.wikitok.ui.screen
 
 import android.content.Intent
+import android.net.Uri
+import android.os.Environment.DIRECTORY_DOWNLOADS
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -19,6 +24,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Refresh
@@ -50,19 +56,22 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withLink
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sy.wikitok.BuildConfig
 import com.sy.wikitok.R
 import com.sy.wikitok.data.Langs
 import com.sy.wikitok.data.Language
 import com.sy.wikitok.ui.component.NetworkImage
-import com.sy.wikitok.ui.screen.SettingViewModel.SettingDialogState.AppUpdateDialog
+import com.sy.wikitok.ui.component.ProgressCircle
 import com.sy.wikitok.utils.Logger
 import com.sy.wikitok.utils.SnackbarManager
 import org.koin.androidx.compose.koinViewModel
+import androidx.core.net.toUri
 
 /**
  * @author Yeung
@@ -79,6 +88,37 @@ fun SettingScreen(
         Logger.d("SettingScreen:LaunchedEffect")
     }
 
+    val context = LocalContext.current
+
+    // 处理 SideEffect
+    LaunchedEffect(settingViewModel.effect) {
+        settingViewModel.effect.collect { effect ->
+            when (effect) {
+                is SettingViewModel.Effect.Toast -> {
+                    SnackbarManager.showSnackbar(effect.message)
+                }
+
+                is SettingViewModel.Effect.Export -> {
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TEXT, effect.exportedData)
+                    }
+                    context.startActivity(intent)
+                }
+
+                is SettingViewModel.Effect.Update -> {
+                    SnackbarManager.showSnackbar(
+                        "发现新版本", actionLabel = "下载",
+                        onAction = {
+                            val downloadPath = context.getExternalFilesDir(DIRECTORY_DOWNLOADS)
+                            settingViewModel.downloadAppUpdate(effect.versionInfo, downloadPath)
+                        }
+                    )
+                }
+            }
+        }
+    }
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -87,33 +127,52 @@ fun SettingScreen(
             )
         }) { innerPadding ->
 
-        val dialogState = settingViewModel.settingDialogState.collectAsStateWithLifecycle()
+        val dialogState = settingViewModel.dialogState.collectAsStateWithLifecycle()
 
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .padding(innerPadding)) {
-            when (dialogState.value) {
-                is AppUpdateDialog -> {
-                    val checkState = (dialogState.value as AppUpdateDialog).checkedSuccess
-                    if (checkState) {
-                        val upgradeInfo = (dialogState.value as AppUpdateDialog).versionInfo!!
-                        Logger.d(
-                            tag = "SettingScreen",
-                            message = "check upgrade success, newVersion: ${upgradeInfo.hasUpdate}"
-                        )
-                        // TODO: show upgrade dialog
-                        SnackbarManager.showSnackbar(
-                            "new version found: ${upgradeInfo.latestVersion}",
-                            actionLabel = "Upgrade",
-                            onAction = settingViewModel::showAboutMessageDialog
-                        )
-                    } else {
-                        Logger.d(tag = "SettingScreen", message = "check upgrade failed")
-                        SnackbarManager.showSnackbar(stringResource(R.string.snakebar_uptodate))
+        val downloadState = settingViewModel.downloadState.collectAsStateWithLifecycle()
+
+        fun installApk(){
+            downloadState.value.let { state ->
+                if (state is SettingViewModel.DownloadUiState.Completed) {
+                    // 使用 FileProvider 获取文件的 Uri
+                    val apkUri: Uri = FileProvider.getUriForFile(
+                        context,
+                        context.packageName + ".fileprovider",
+                        state.file
+                    )
+
+                    // 创建安装 Intent
+                    val installIntent = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(apkUri, "application/vnd.android.package-archive")
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     }
+                    context.startActivity(installIntent)
                 }
+            }
 
-                is SettingViewModel.SettingDialogState.AboutMessageDialog -> {
+        }
+
+        val requestInstallPackagesLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            // 当权限请求返回后，检查是否获得了权限并继续安装流程
+            if (context.packageManager.canRequestPackageInstalls()) {
+                // 权限已获得，继续安装流程
+                installApk()
+            } else {
+                // 用户没有授予权限，可以显示提示信息
+                SnackbarManager.showSnackbar("需要安装权限才能更新应用")
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            when (dialogState.value) {
+                is SettingViewModel.DialogState.About -> {
                     val urlHandler = LocalUriHandler.current
                     val strUrl = "https://github.com/coreycao/wikitok-android"
                     val link = LinkAnnotation.Url(
@@ -136,7 +195,7 @@ fun SettingScreen(
                     }
                 }
 
-                is SettingViewModel.SettingDialogState.LanguageOption -> {
+                is SettingViewModel.DialogState.Option -> {
                     val langOptions = Langs.values.toList()
                     SelectOptionDialog(
                         options = langOptions,
@@ -150,31 +209,8 @@ fun SettingScreen(
                     )
                 }
 
-                is SettingViewModel.SettingDialogState.ExportFavorite -> {
-                    (dialogState.value as SettingViewModel.SettingDialogState.ExportFavorite)
-                        .result.fold(onSuccess = {
-                            if (it.isBlank()) {
-                                SnackbarManager.showSnackbar("Export failed, you have no favorite wikis.")
-                            } else {
-                                val intent = Intent(Intent.ACTION_SEND).apply {
-                                    type = "text/plain"
-                                    putExtra(Intent.EXTRA_TEXT, it)
-                                }
-                                LocalContext.current.startActivity(
-                                    Intent.createChooser(
-                                        intent,
-                                        "Share"
-                                    )
-                                )
-                            }
-                        }, onFailure = {
-                            Logger.d(tag = "SettingScreen", message = "export error: $it")
-                            SnackbarManager.showSnackbar("Export failed, try again")
-                        })
-                }
-
-                is SettingViewModel.SettingDialogState.None -> {
-                    // do nothing, just dismiss the dialogs.
+                is SettingViewModel.DialogState.None -> {
+                    Logger.d(message = "dismissDialog")
                 }
             }
 
@@ -183,31 +219,72 @@ fun SettingScreen(
                     SettingsItem(
                         Icons.Filled.Place,
                         stringResource(R.string.txt_setting_item_language),
-                        stringResource(R.string.txt_setting_item_language_hint)
-                    ) {
-                        settingViewModel.showLanguageOptionDialog()
-                    }
+                        stringResource(R.string.txt_setting_item_language_hint),
+                        onClick = {
+                            settingViewModel.showLangOptDialog()
+                        }
+                    )
                     SettingsItem(
                         Icons.AutoMirrored.Default.Send,
                         stringResource(R.string.txt_setting_item_export),
-                        stringResource(R.string.txt_setting_item_export_hint)
-                    ) {
-                        settingViewModel.exportFavorite()
-                    }
+                        stringResource(R.string.txt_setting_item_export_hint),
+                        onClick = {
+                            settingViewModel.exportFavorites()
+                        }
+                    )
                     SettingsItem(
                         Icons.Filled.Refresh,
                         "${stringResource(R.string.txt_setting_item_version)}: ${BuildConfig.VERSION_NAME}",
-                        stringResource(R.string.txt_setting_item_version_hint)
+                        stringResource(R.string.txt_setting_item_version_hint),
+                        onClick = {
+                            when(downloadState.value){
+                                is SettingViewModel.DownloadUiState.Completed -> {
+                                    if (!context.packageManager.canRequestPackageInstalls()) {
+                                        // 如果没有权限，引导用户到设置页面开启
+                                        val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                                            data = "package:${context.packageName}".toUri()
+                                        }
+                                        requestInstallPackagesLauncher.launch(intent)
+                                    } else {
+                                        installApk()
+                                    }
+                                } else-> {
+                                    settingViewModel.checkAppUpdate()
+                                }
+                            }
+
+                        }
                     ) {
-                        settingViewModel.checkAppUpdate()
+                        when(downloadState.value){
+                            is SettingViewModel.DownloadUiState.Downloading -> {
+                                ProgressCircle(
+                                    progress = (downloadState.value as SettingViewModel.DownloadUiState.Downloading).progress,
+                                    modifier = Modifier.size(28.dp),
+                                    strokeWidth = 5.dp
+                                )
+                            }
+                            is SettingViewModel.DownloadUiState.Completed -> {
+                                Icon(
+                                    modifier = Modifier.size(28.dp),
+                                    imageVector = Icons.Default.Done,
+                                    contentDescription = null,
+                                    tint = Color.Green
+                                )
+                            }
+                            else -> {
+                                // do nothing
+                            }
+                        }
+
                     }
                     SettingsItem(
                         Icons.Default.Info,
                         stringResource(R.string.txt_setting_item_about),
-                        stringResource(R.string.txt_setting_item_about_hint)
-                    ) {
-                        settingViewModel.showAboutMessageDialog()
-                    }
+                        stringResource(R.string.txt_setting_item_about_hint),
+                        onClick = {
+                            settingViewModel.showAboutDialog()
+                        }
+                    )
                 }
             }
 
@@ -215,8 +292,33 @@ fun SettingScreen(
     }
 }
 
+@Preview
 @Composable
-fun SettingsItem(icon: Any, title: String, subtitle: String, action: () -> Unit = {}) {
+fun SettingItemPreview() {
+    MaterialTheme {
+        SettingsItem(
+            Icons.Filled.Done,
+            "${stringResource(R.string.txt_setting_item_version)}: ${BuildConfig.VERSION_NAME}",
+            stringResource(R.string.txt_setting_item_version_hint),
+            trailingIcon = {
+                ProgressCircle(
+                    modifier = Modifier.size(28.dp),
+                    progress = 0.75f,
+                    strokeWidth = 5.dp
+                )
+            }
+        )
+    }
+}
+
+@Composable
+fun SettingsItem(
+    leadingIcon: Any,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit = {},
+    trailingIcon: @Composable () -> Unit = {},
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -224,15 +326,15 @@ fun SettingsItem(icon: Any, title: String, subtitle: String, action: () -> Unit 
                 interactionSource = remember { MutableInteractionSource() },
                 indication = ripple(bounded = true)
             ) {
-                Logger.d(tag = "SettingScreen", message = "click setting item: $title")
-                action()
+                Logger.d(message = "click setting item: $title")
+                onClick()
             }
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        when (icon) {
-            is ImageVector -> Icon(icon, contentDescription = null)
-            is Painter -> Image(painter = icon, contentDescription = null)
+        when (leadingIcon) {
+            is ImageVector -> Icon(leadingIcon, contentDescription = null)
+            is Painter -> Image(painter = leadingIcon, contentDescription = null)
         }
         Spacer(modifier = Modifier.width(16.dp))
         Column {
@@ -243,12 +345,14 @@ fun SettingsItem(icon: Any, title: String, subtitle: String, action: () -> Unit 
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
         }
+        Spacer(modifier = Modifier.weight(1f))
+        trailingIcon()
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MessageDialog(message: AnnotatedString, onDismiss: () -> Unit = {}) {
+fun MessageDialog(message: AnnotatedString, onDismiss: () -> Unit = {}) {
     BasicAlertDialog(
         onDismissRequest = {
             onDismiss()
@@ -282,7 +386,7 @@ private fun MessageDialog(message: AnnotatedString, onDismiss: () -> Unit = {}) 
 }
 
 @Composable
-private fun SelectOptionDialog(
+fun SelectOptionDialog(
     options: List<Language>,
     onOptionSelected: (Language) -> Unit,
     onDismissRequest: () -> Unit

@@ -4,19 +4,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sy.wikitok.data.Language
 import com.sy.wikitok.data.model.AppUpdateInfo
-import com.sy.wikitok.data.model.WikiModel
 import com.sy.wikitok.data.repository.UserRepository
 import com.sy.wikitok.data.repository.WikiRepository
+import com.sy.wikitok.network.DownloadState
 import com.sy.wikitok.utils.Logger
-import com.sy.wikitok.utils.currentDateTime
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import java.io.File
 
 /**
  * @author Yeung
@@ -36,41 +37,48 @@ class SettingViewModel(
         Logger.d(tag = "SettingVM", message = "onCleared")
     }
 
-    sealed class SettingDialogState {
-        object None : SettingDialogState()
-        data class AppUpdateDialog(
-            val checkedSuccess: Boolean = true,
-            val versionInfo: AppUpdateInfo? = null
-        ) : SettingDialogState()
-        object AboutMessageDialog : SettingDialogState()
-        object LanguageOption : SettingDialogState()
-        data class ExportFavorite(val result: Result<String>) : SettingDialogState()
+    sealed class Effect {
+        data class Toast(val message: String) : Effect()
+        data class Export(val exportedData: String) : Effect()
+        data class Update(val versionInfo: AppUpdateInfo) : Effect()
     }
 
-    private val _settingDialogState = MutableStateFlow<SettingDialogState>(SettingDialogState.None)
-    val settingDialogState = _settingDialogState.asStateFlow()
+    sealed class DialogState {
+        object None : DialogState()
+        object About : DialogState()
+        object Option : DialogState()
+    }
 
-    fun showAboutMessageDialog() {
+    sealed class DownloadUiState {
+        object None : DownloadUiState()
+        data class Downloading(val progress: Float) : DownloadUiState()
+        data class Completed(val file: File) : DownloadUiState()
+    }
+
+    private val _effect = MutableSharedFlow<Effect>()
+    val effect = _effect.asSharedFlow()
+
+    private val _dialogState = MutableStateFlow<DialogState>(DialogState.None)
+    val dialogState = _dialogState.asStateFlow()
+
+    private val _downloadState = MutableStateFlow<DownloadUiState>(DownloadUiState.None)
+    val downloadState = _downloadState.asStateFlow()
+
+    fun showAboutDialog() {
         viewModelScope.launch {
-            _settingDialogState.value = SettingDialogState.AboutMessageDialog
+            _dialogState.value = DialogState.About
         }
     }
 
-    fun showLanguageOptionDialog() {
+    fun showLangOptDialog() {
         viewModelScope.launch {
-            _settingDialogState.value = SettingDialogState.LanguageOption
-        }
-    }
-
-    private fun showAppUpdateDialog(versionInfo: AppUpdateInfo) {
-        viewModelScope.launch {
-            _settingDialogState.value = SettingDialogState.AppUpdateDialog(true, versionInfo)
+            _dialogState.value = DialogState.Option
         }
     }
 
     fun dismissDialog() {
         viewModelScope.launch {
-            _settingDialogState.value = SettingDialogState.None
+            _dialogState.value = DialogState.None
         }
     }
 
@@ -80,38 +88,72 @@ class SettingViewModel(
         }
     }
 
+    private var cheekAppUpdateJob : Job? = null
     fun checkAppUpdate() {
-        viewModelScope.launch {
+        if (cheekAppUpdateJob?.isActive == true) return
+        cheekAppUpdateJob = viewModelScope.launch {
             userRepo.observeAppVersion()
-                .onEach {
-                    if (it.isSuccess) {
-                        val appUpdateInfo: AppUpdateInfo = it.getOrThrow()
-                        showAppUpdateDialog(appUpdateInfo)
-                    } else {
-                        _settingDialogState.value = SettingDialogState.AppUpdateDialog(false)
-                    }
-                }.catch {
-                    _settingDialogState.value = SettingDialogState.AppUpdateDialog(false)
+                .onEach { result ->
+                    result.fold(
+                        onSuccess = { it ->
+                            _effect.emit(Effect.Update(it))
+                        },
+                        onFailure = {
+                            _effect.emit(Effect.Toast("检查更新失败"))
+                        }
+                    )
                 }.first()
         }
     }
 
-    @Serializable
-    data class ExportData(
-        val exportTime: String,
-        val favorites: List<WikiModel>
-    )
+    fun downloadAppUpdate(versionInfo: AppUpdateInfo, downloadDir: File?) {
+        viewModelScope.launch {
+            if(downloadDir == null){
+                Logger.e("downloadDir == null")
+                _effect.emit(Effect.Toast("下载失败"))
+                return@launch
+            }
+            if (downloadDir.exists().not()){
+                downloadDir.mkdirs()
+            }
+            val apkUrl = versionInfo.downloadUrl.android.url
+            val apkName = "${versionInfo.downloadUrl.android.md5}.apk"
+            // val apkUrl = "https://github.com/coreycao/wikitok-android/releases/download/v0.1.1-alpha/wikitok-release.apk"
+            // val apkName = "app-release.apk"
+            val apkFile = File(downloadDir, apkName)
+            if (apkFile.exists()) {
+                Logger.d("already downloaded")
+                _effect.emit(Effect.Toast("下载完成"))
+                _downloadState.value = DownloadUiState.Completed(apkFile)
+                return@launch
+            }
+            _effect.emit(Effect.Toast("开始下载"))
+            userRepo.observeAppDownload(apkUrl, apkFile)
+                .collect { state ->
+                    when (state) {
+                        is DownloadState.Error -> {
+                            _effect.emit(Effect.Toast("下载失败"))
+                        }
+                        is DownloadState.Progress -> {
+                            _downloadState.value = DownloadUiState.Downloading(state.progress)
+                        }
+                        is DownloadState.Success -> {
+                            _effect.emit(Effect.Toast("下载完成"))
+                            _downloadState.value = DownloadUiState.Completed(apkFile)
+                        }
+                    }
+                }
+        }
+    }
 
-    fun exportFavorite() {
+    fun exportFavorites() {
         viewModelScope.launch {
             val favorites = wikiRepo.readLocalFavorites()
-            _settingDialogState.value = SettingDialogState.ExportFavorite(
-                runCatching {
-                    Json.encodeToString(
-                        ExportData(currentDateTime(), favorites)
-                    )
-                }
-            )
+            if (favorites.isEmpty()) {
+                _effect.emit(Effect.Toast("您的收藏为空"))
+            } else {
+                _effect.emit(Effect.Export(Json.encodeToString(favorites)))
+            }
         }
     }
 }

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 允许 FileProvider 访问应用的外部文件目录 -->
+    <external-files-path name="download_files" path="Download/" />
+</paths>
