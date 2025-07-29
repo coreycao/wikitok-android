@@ -1,0 +1,18 @@
+{
+  "generateAI": {
+    "summaryAI": {
+      "enable": true,
+      "host": "https://api.siliconflow.cn/v1/",
+      "model": "THUDM/GLM-4.1V-9B-Thinking",
+      "system_prompt": "你是一名小助手，善于洞察和总结。\n在接下来的对话中，请你根据我的问题，给出答案。",
+      "biz_prompt": "我将给出你一份我在浏览维基百科时收藏的词条清单，\n请你基于这些词条，总结出一份知识体系，谈谈你对我的洞察和了解。\n我收藏的词条如下："
+    },
+    "chatAI": {
+      "enable": true,
+      "host": "https://api.siliconflow.cn/v1/",
+      "model": "THUDM/GLM-4.1V-9B-Thinking",
+      "system_prompt": "你是一名 AI 智能助理，拥有丰富的百科知识，并且擅长耐心地向他们讲解相关的知识。\n在接下来的对话中，请你根据用户的问题，给出耐心的回复。\n对于不清楚、不知道的东西，你一律回答不知道就好。",
+      "biz_prompt": ""
+    }
+  }
+}
