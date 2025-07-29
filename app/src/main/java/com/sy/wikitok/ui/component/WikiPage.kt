@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Card
@@ -28,10 +29,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.sy.wikitok.R
@@ -47,7 +46,7 @@ fun WikiPage(
     wikiModel: WikiModel,
     onDoubleTapped: (WikiModel) -> Unit = {},
     onFavIconTapped: (WikiModel) -> Unit = {},
-    onDetailClicked:()->Unit={}
+    onDetailClicked:(WikiModel)->Unit={}
 ) {
     val context = LocalContext.current
 
@@ -105,27 +104,30 @@ fun WikiPage(
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = stringResource(id = R.string.txt_read_more),
-                    color = Color.White,
-                    fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                    textAlign = TextAlign.End,
+                Row(
+                    horizontalArrangement = Arrangement.End,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable {
-                            onDetailClicked()
-                            /*val uri = wikiModel.linkUrl.toUri().run {
-                                if (scheme.isNullOrBlank()) {
-                                    buildUpon().scheme("https").build()
-                                } else {
-                                    this
-                                }
+                        .clickable(
+                            onClick = {
+                                onDetailClicked(wikiModel)
                             }
-                            context.startActivity(
-                                Intent(Intent.ACTION_VIEW, uri)
-                            )*/
-                        }
-                )
+                        )) {
+                    Text(
+                        modifier = Modifier.align(Alignment.CenterVertically),
+                        text = stringResource(id = R.string.txt_read_more),
+                        color = Color.White,
+                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Icon(
+
+                        imageVector = Icons.Filled.Face,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp).align(Alignment.CenterVertically)
+                    )
+
+                }
             }
         }
 
@@ -135,7 +137,7 @@ fun WikiPage(
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = statusBarHeightDp, end = 32.dp)
+                .padding(/*top = statusBarHeightDp,*/ end = 32.dp)
                 .size(28.dp)
                 .clickable {
                     val intent = Intent(Intent.ACTION_SEND).apply {

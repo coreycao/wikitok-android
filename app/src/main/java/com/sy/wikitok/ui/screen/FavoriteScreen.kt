@@ -25,9 +25,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -100,12 +97,11 @@ fun FavoriteListScreen(
 
     val aiSummaryState by viewModel.aiSummaryState.collectAsStateWithLifecycle()
 
-    var expanded by remember { mutableStateOf(false) }
-
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(8.dp)
+            contentPadding = PaddingValues(8.dp),
+            state = viewModel.favListState
         ) {
             val itemModifier = Modifier.fillMaxWidth()
             items(
@@ -124,7 +120,7 @@ fun FavoriteListScreen(
             }
         }
 
-        AnimatedVisibility(visible = expanded) {
+        AnimatedVisibility(visible = viewModel.aiSummaryExpand) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -133,7 +129,7 @@ fun FavoriteListScreen(
             ) {
                 when (aiSummaryState) {
                     is FavoriteViewModel.AISummaryState.Loading -> {
-                        LoadingScreen()
+                        LoadingScreen(modifier = Modifier.align(Alignment.Center))
                     }
 
                     is FavoriteViewModel.AISummaryState.Empty->{
@@ -158,16 +154,13 @@ fun FavoriteListScreen(
         }
 
         RotationFAB(
-            onClick = {
-                expanded = !expanded
-                if (expanded){
-                    viewModel.aiSummary()
-                }
-            },
+            rotated = viewModel.aiSummaryExpand,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
-        )
+        ){
+            viewModel.aiSummary()
+        }
     }
 
     ImageBrowser(

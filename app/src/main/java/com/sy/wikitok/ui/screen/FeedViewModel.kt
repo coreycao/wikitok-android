@@ -92,8 +92,10 @@ class FeedViewModel(
     init {
         Logger.d(tag = "FeedViewModel", message = "onCreated")
         viewModelScope.launch {
+            isRefreshing = true
             wikiRepository.observableRemoteWikiFeed.collect {
                 Logger.d(message = "collect remote feed")
+                isRefreshing = false
             }
         }
     }

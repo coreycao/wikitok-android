@@ -6,6 +6,7 @@ import com.sy.wikitok.utils.Logger
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
+import io.ktor.client.statement.request
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.Json
 
@@ -39,7 +40,7 @@ class WikiApiService(private val httpClient: HttpClient) : BaseApiService {
      * - pithumbsize 实际可能返回接近但不超过指定尺寸的缩略图
      * - exintro 与 exsentences 配合使用可控制摘要长度
      */
-    fun observerWikiList(api: String, count: Int = 20) = flow {
+    fun observerWikiList(api: String, count: Int = 30) = flow {
         emit(runCatching {
             val response = httpClient.get(api) {
                 url {
@@ -64,6 +65,8 @@ class WikiApiService(private val httpClient: HttpClient) : BaseApiService {
             }
             Logger.i(tag = "ApiService", message = "requestWiki success")
             response.body<WikiApiResponse>()
+        }.onFailure {
+            Logger.e(tag = "ApiService", message = "requestWiki error: ${it.message}")
         }
         )
     }

@@ -4,12 +4,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
@@ -21,7 +19,6 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,12 +36,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.sy.wikitok.R
+import com.sy.wikitok.data.model.WikiModel
 import com.sy.wikitok.ui.theme.WikiTokTheme
+import com.sy.wikitok.utils.Logger
 import com.sy.wikitok.utils.SnackbarManager
 import kotlinx.coroutines.FlowPreview
 import kotlinx.serialization.Serializable
-import org.koin.androidx.compose.KoinAndroidContext
 
 /**
  * @author Yeung
@@ -67,7 +66,11 @@ sealed class MainRoute {
     object Setting : MainRoute()
 
     @Serializable
-    object Chat : MainRoute()
+    data class Chat(val id: String,
+                    val title: String,
+                    val content: String,
+                    val imgUrl: String,
+                    val linkUrl: String) : MainRoute()
 }
 
 class MainActivity : ComponentActivity() {
@@ -77,10 +80,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            KoinAndroidContext {
-                WikiTokTheme {
-                    HomeScaffold()
-                }
+            WikiTokTheme {
+                HomeScaffold()
             }
         }
     }
@@ -89,6 +90,10 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
 private fun HomeScaffold() {
+
+    LaunchedEffect(Unit) {
+        Logger.d("HomeScaffold Launched")
+    }
 
     val navController = rememberNavController()
 
@@ -121,7 +126,9 @@ private fun HomeScaffold() {
         NavHost(
             navController = navController,
             startDestination = MainRoute.MainScreen,
-            modifier = Modifier.consumeWindowInsets(innerPadding)
+            modifier = Modifier
+                 .consumeWindowInsets(innerPadding)
+                 .padding(innerPadding)
         ) {
 
             // Home Screen with bottom bar
@@ -133,9 +140,20 @@ private fun HomeScaffold() {
             }
 
             // AI Chat Screen
-            composable<MainRoute.Chat> {
+            composable<MainRoute.Chat>(
+            ){ it->
+                val route = it.toRoute<MainRoute.Chat>()
+                val wikiModel = WikiModel(
+                    id = route.id,
+                    title = route.title,
+                    content = route.content,
+                    imgUrl = route.imgUrl,
+                    linkUrl = route.linkUrl
+                )
                 ChatScreen(
+                    // modifier = Modifier.padding(innerPadding),
                     homeInnerPadding = innerPadding,
+                    wikiInfo = wikiModel,
                     onBack = {
                         navController.popBackStack()
                     }
@@ -152,7 +170,7 @@ fun MainScreenWithBottomBar(homeInnerPadding: PaddingValues, navController: NavH
         bottomBar = {
             NavigationBar(
                 modifier = Modifier
-                    .height(96.dp)
+                    .height(84.dp)
             ) {
                 val navBackStackEntry by internalNavController.currentBackStackEntryAsState()
                 val currentDestination = navBackStackEntry?.destination
@@ -188,17 +206,23 @@ fun MainScreenWithBottomBar(homeInnerPadding: PaddingValues, navController: NavH
         ) {
 
             composable<MainRoute.Feed> {
-                FeedScreen(navigateToChat = {
-                    navController.navigate(MainRoute.Chat)
+                FeedScreen(
+//                    modifier = Modifier.padding(innerPadding),
+                    navigateToChat = { wikiModel ->
+                    navController.navigate(MainRoute.Chat(wikiModel.id, wikiModel.title,wikiModel.content, wikiModel.imgUrl, wikiModel.linkUrl))
                 })
             }
 
             composable<MainRoute.Favorite> {
-                FavoriteScreen(modifier = Modifier.padding(top = homeInnerPadding.calculateTopPadding()))
+                FavoriteScreen(
+                     // modifier = Modifier.padding(top = homeInnerPadding.calculateTopPadding())
+                )
             }
 
             composable<MainRoute.Setting> {
-                SettingScreen(modifier = Modifier.padding(top = homeInnerPadding.calculateTopPadding()))
+                SettingScreen(
+                    // modifier = Modifier.padding(top = innerPadding.calculateTopPadding())
+                )
             }
         }
     }

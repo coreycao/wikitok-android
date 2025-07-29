@@ -2,6 +2,7 @@ package com.sy.wikitok.ui.screen
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sy.wikitok.data.Langs
 import com.sy.wikitok.data.Language
 import com.sy.wikitok.data.model.AppUpdateInfo
 import com.sy.wikitok.data.repository.UserRepository
@@ -11,10 +12,13 @@ import com.sy.wikitok.utils.Logger
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -63,6 +67,17 @@ class SettingViewModel(
 
     private val _downloadState = MutableStateFlow<DownloadUiState>(DownloadUiState.None)
     val downloadState = _downloadState.asStateFlow()
+
+    val languages = userRepo.observeLanguageSetting()
+        .map { currentLang->
+            Langs.values.toMutableList().map {
+                it.copy(selected = currentLang.id == it.id)
+            }
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = Langs.values.toList()
+        )
 
     fun showAboutDialog() {
         viewModelScope.launch {

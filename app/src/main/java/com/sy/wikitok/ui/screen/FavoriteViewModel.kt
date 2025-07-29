@@ -1,5 +1,9 @@
 package com.sy.wikitok.ui.screen
 
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sy.wikitok.data.model.WikiModel
@@ -37,13 +41,18 @@ class FavoriteViewModel(
 ) : ViewModel() {
 
     init {
-        Logger.d(tag = "FavoriteViewModel", message = "onCreated")
+        Logger.d(tag = "FavoriteVM", message = "onCreated")
     }
 
     override fun onCleared() {
         super.onCleared()
-        Logger.d(tag = "FavoriteViewModel", message = "onCleared")
+        Logger.d(tag = "FavoriteVM", message = "onCleared")
     }
+
+    val favListState = LazyListState()
+
+    var aiSummaryExpand by mutableStateOf(false)
+        private set
 
     sealed class UiState {
         data class Success(val wikiList: List<WikiModel>) : UiState()
@@ -61,15 +70,15 @@ class FavoriteViewModel(
     val favorites = wikiRepo.favoriteUpdates
         .map<List<WikiModel>, UiState> { list ->
             return@map if (list.isEmpty()) {
-                Logger.d(tag = "FavoriteViewModel", message = "favorites: empty")
+                Logger.d(tag = "FavoriteVM", message = "favorites: empty")
                 UiState.Empty
             } else {
-                Logger.d(tag = "FavoriteViewModel", message = "favorites counts: ${list.size}")
+                Logger.d(tag = "FavoriteVM", message = "favorites counts: ${list.size}")
                 UiState.Success(list)
             }
         }
         .catch { e ->
-            Logger.e("FavoriteViewModel", "favorites: ${e.message}")
+            Logger.e("FavoriteVM", "favorites: ${e.message}")
             emit(UiState.Error(e.message ?: "Unknown Error"))
         }
         .stateIn(
@@ -88,23 +97,27 @@ class FavoriteViewModel(
     private val _aiSummaryState = MutableStateFlow<AISummaryState>(AISummaryState.Loading)
     val aiSummaryState = _aiSummaryState.asStateFlow()
 
-    private var genAiJob: Job? = null
+    private var _genAiJob: Job? = null
 
     fun aiSummary() {
-        if (genAiJob?.isActive == true) {
-            Logger.d(tag = "GenAIRepository", message = "genAiJob is already running")
+        aiSummaryExpand = aiSummaryExpand.not()
+        if (aiSummaryExpand.not()) {
             return
         }
-        genAiJob = viewModelScope.launch {
+        if (_genAiJob?.isActive == true) {
+            Logger.d(tag = "FavoriteVM", message = "genAiJob is already running")
+            return
+        }
+        _genAiJob = viewModelScope.launch {
             val wikiItems: List<String> = wikiRepo.readLocalFavorites().map {
                 it.title
             }
-            genAIRepository.summaryFavorite(wikiItems)
+            genAIRepository.getAISummary(wikiItems)
                 .onEach { result ->
                     result.fold(
                         onSuccess = { message ->
                             Logger.d(
-                                tag = "FavVM",
+                                tag = "FavoriteVM",
                                 message = "summary success: $message"
                             )
                             if (message.isEmpty()) {
@@ -118,7 +131,7 @@ class FavoriteViewModel(
                             }
                         }, onFailure = { error ->
                             Logger.e(
-                                tag = "FavVM",
+                                tag = "FavoriteVM",
                                 message = "summary error: ${error.message}"
                             )
                             _aiSummaryState.update {

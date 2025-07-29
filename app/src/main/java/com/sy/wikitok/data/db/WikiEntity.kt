@@ -1,14 +1,15 @@
 package com.sy.wikitok.data.db
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
  * @author Yeung
  * @date 2025/3/21
  */
-@Entity(tableName = "tb_feeds")
-class WikiEntity(
+@Entity(tableName = "tb_feeds", indices = [Index("id")])
+data class WikiEntity(
     @PrimaryKey
     val id: String,
     val title: String,

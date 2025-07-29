@@ -40,6 +40,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -131,7 +132,7 @@ fun SettingScreen(
 
         val downloadState = settingViewModel.downloadState.collectAsStateWithLifecycle()
 
-        fun installApk(){
+        fun installApk() {
             downloadState.value.let { state ->
                 if (state is SettingViewModel.DownloadUiState.Completed) {
                     // 使用 FileProvider 获取文件的 Uri
@@ -166,6 +167,8 @@ fun SettingScreen(
             }
         }
 
+        val languageOpts by settingViewModel.languages.collectAsStateWithLifecycle()
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -196,9 +199,8 @@ fun SettingScreen(
                 }
 
                 is SettingViewModel.DialogState.Option -> {
-                    val langOptions = Langs.values.toList()
                     SelectOptionDialog(
-                        options = langOptions,
+                        options = languageOpts,
                         onOptionSelected = { option ->
                             settingViewModel.changeLanguage(option)
                             settingViewModel.dismissDialog()
@@ -235,27 +237,36 @@ fun SettingScreen(
                     SettingsItem(
                         Icons.Filled.Refresh,
                         "${stringResource(R.string.txt_setting_item_version)}: ${BuildConfig.VERSION_NAME}",
-                        stringResource(R.string.txt_setting_item_version_hint),
+                        stringResource(
+                            if (downloadState.value is SettingViewModel.DownloadUiState.Completed) {
+                                R.string.txt_setting_item_install_hint
+                            } else {
+                                R.string.txt_setting_item_version_hint
+                            }
+                        ),
                         onClick = {
-                            when(downloadState.value){
+                            when (downloadState.value) {
                                 is SettingViewModel.DownloadUiState.Completed -> {
                                     if (!context.packageManager.canRequestPackageInstalls()) {
                                         // 如果没有权限，引导用户到设置页面开启
-                                        val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
-                                            data = "package:${context.packageName}".toUri()
-                                        }
+                                        val intent =
+                                            Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                                                data = "package:${context.packageName}".toUri()
+                                            }
                                         requestInstallPackagesLauncher.launch(intent)
                                     } else {
                                         installApk()
                                     }
-                                } else-> {
+                                }
+
+                                else -> {
                                     settingViewModel.checkAppUpdate()
                                 }
                             }
 
                         }
                     ) {
-                        when(downloadState.value){
+                        when (downloadState.value) {
                             is SettingViewModel.DownloadUiState.Downloading -> {
                                 ProgressCircle(
                                     progress = (downloadState.value as SettingViewModel.DownloadUiState.Downloading).progress,
@@ -263,6 +274,7 @@ fun SettingScreen(
                                     strokeWidth = 5.dp
                                 )
                             }
+
                             is SettingViewModel.DownloadUiState.Completed -> {
                                 Icon(
                                     modifier = Modifier.size(28.dp),
@@ -271,6 +283,7 @@ fun SettingScreen(
                                     tint = Color.Green
                                 )
                             }
+
                             else -> {
                                 // do nothing
                             }
@@ -412,7 +425,8 @@ fun SelectOptionDialog(
                                 onDismissRequest
                             },
                             itemIconUrl = item.flag,
-                            itemTitle = item.name
+                            itemTitle = item.name,
+                            isSelected = item.selected
                         )
                     }
                 }
@@ -429,7 +443,12 @@ fun SelectOptionDialog(
 }
 
 @Composable
-fun SelectOptionItem(onItemSelected: () -> Unit, itemIconUrl: String, itemTitle: String) {
+fun SelectOptionItem(
+    onItemSelected: () -> Unit,
+    itemIconUrl: String,
+    itemTitle: String,
+    isSelected: Boolean = false
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -451,6 +470,11 @@ fun SelectOptionItem(onItemSelected: () -> Unit, itemIconUrl: String, itemTitle:
         Spacer(modifier = Modifier.width(12.dp))
         Text(
             text = itemTitle,
+            color = if (isSelected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.secondary
+            },
             style = MaterialTheme.typography.bodyLarge
         )
     }

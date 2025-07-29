@@ -13,6 +13,10 @@ import androidx.datastore.preferences.preferencesDataStore
 
 private const val SETTINGS_NAME = "settings"
 
-val Application.dataStore: DataStore<Preferences> by preferencesDataStore(name = SETTINGS_NAME)
+val Application.settingDataStore: DataStore<Preferences> by preferencesDataStore(name = SETTINGS_NAME)
 
 val KEY_LANG = stringPreferencesKey("lang")
+
+private const val SUMMARY_NAME = "summary"
+
+val Application.summaryDataStore: DataStore<Preferences> by preferencesDataStore(name = SUMMARY_NAME)

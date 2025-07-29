@@ -1,6 +1,7 @@
 package com.sy.wikitok
 
 import android.app.Application
+import com.sy.wikitok.utils.Logger
 
 /**
  * @author Yeung
@@ -9,5 +10,6 @@ import android.app.Application
 class WikiTokApp : Application() {
     override fun onCreate() {
         super.onCreate()
+        Logger.d(tag = "WikiTokApp", message = "onCreate")
     }
 }

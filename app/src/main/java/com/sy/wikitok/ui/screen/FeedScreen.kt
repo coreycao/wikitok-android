@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sy.wikitok.BuildConfig
+import com.sy.wikitok.data.model.WikiModel
 import com.sy.wikitok.ui.component.WikiPage
 import com.sy.wikitok.ui.screen.FeedViewModel.UiState
 import com.sy.wikitok.utils.Logger
@@ -25,7 +26,7 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun FeedScreen(modifier: Modifier = Modifier,
                feedViewModel: FeedViewModel = koinViewModel(),
-               navigateToChat:()->Unit = {}
+               navigateToChat:(WikiModel)->Unit = {}
 
 ) {
 
@@ -69,7 +70,7 @@ fun FeedScreen(modifier: Modifier = Modifier,
             }
 
             PullToRefreshBox(
-                modifier = Modifier.fillMaxSize(),
+                modifier = modifier.fillMaxSize(),
                 isRefreshing = feedViewModel.isRefreshing,
                 onRefresh = feedViewModel::refresh
             ) {

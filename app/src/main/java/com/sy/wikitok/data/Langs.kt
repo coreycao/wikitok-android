@@ -7,14 +7,13 @@ package com.sy.wikitok.data
 
 const val DEFAULT_LANG_ID = "zh-cn"
 
-val DEFAULT_LANGUAGE = Language(
-    "zh-cn",
-    "中文（中国大陆）",
-    "https://hatscripts.github.io/circle-flags/flags/cn.svg",
-    "https://zh.wikipedia.org/w/api.php"
+data class Language(
+    val id: String,
+    val name: String,
+    val flag: String,
+    val api: String,
+    val selected: Boolean
 )
-
-data class Language(val id: String, val name: String, val flag: String, val api: String)
 
 val Langs = mapOf(
 
@@ -22,14 +21,16 @@ val Langs = mapOf(
         "zh-cn",
         "中文（中国大陆）",
         "https://hatscripts.github.io/circle-flags/flags/cn.svg",
-        "https://zh.wikipedia.org/w/api.php"
+        "https://zh.wikipedia.org/w/api.php",
+        selected = true
     ),
 
     "en" to Language(
         "en",
         "English",
         "https://hatscripts.github.io/circle-flags/flags/us.svg",
-        "https://en.wikipedia.org/w/api.php"
+        "https://en.wikipedia.org/w/api.php",
+        selected = false
     ),
 
 
@@ -37,7 +38,8 @@ val Langs = mapOf(
         "ja",
         "日本語",
         "https://hatscripts.github.io/circle-flags/flags/jp.svg",
-        "https://ja.wikipedia.org/w/api.php"
+        "https://ja.wikipedia.org/w/api.php",
+        selected = false
     )
 
 )

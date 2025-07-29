@@ -3,7 +3,6 @@ package com.sy.wikitok.data.repository
 import android.content.res.AssetManager
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import com.sy.wikitok.data.DEFAULT_LANGUAGE
 import com.sy.wikitok.data.DEFAULT_LANG_ID
 import com.sy.wikitok.data.Langs
 import com.sy.wikitok.data.db.FavoriteDao
@@ -62,7 +61,7 @@ class WikiRepository(
 
     private fun observeLanguageSetting() = dataStore.data.map { preference ->
         val langId = preference[KEY_LANG] ?: DEFAULT_LANG_ID
-        Langs[langId] ?: DEFAULT_LANGUAGE
+        Langs[langId]!!
     }
 
     companion object {

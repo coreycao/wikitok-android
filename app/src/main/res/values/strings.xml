@@ -13,7 +13,7 @@
     <string name="txt_feed_success">数据加载失败</string>
     <string name="txt_feed_error">数据加载失败</string>
     <string name="txt_screen_empty">没有数据</string>
-    <string name="txt_read_more">阅读更多 >>></string>
+    <string name="txt_read_more">深入聊聊～</string>
     <string name="txt_chooser_title_share">分享</string>
     <string name="txt_search_bar_hint">搜索您的收藏</string>
 
@@ -23,6 +23,7 @@
     <string name="txt_setting_item_export_hint">导出收藏列表至邮箱</string>
     <string name="txt_setting_item_version">版本</string>
     <string name="txt_setting_item_version_hint">检查更新</string>
+    <string name="txt_setting_item_install_hint">安装更新</string>
     <string name="txt_setting_item_about">开发者</string>
     <string name="txt_setting_item_about_hint">开发者和 App 的信息</string>
 

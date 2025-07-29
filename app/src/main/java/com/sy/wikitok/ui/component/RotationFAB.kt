@@ -21,18 +21,17 @@ import androidx.compose.ui.draw.rotate
  */
 @Composable
 fun RotationFAB(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    rotated: Boolean = false,
+    onClick: () -> Unit = {},
 ) {
-    var rotated by remember { mutableStateOf(false) }
     var rotation by remember { mutableFloatStateOf(0f) }
     val animatedRotation by animateFloatAsState(targetValue = rotation, label = "")
 
     FloatingActionButton(
         onClick = {
-            onClick()
-            rotated = !rotated
             if (rotated) rotation += 90f else rotation -= 90
+            onClick()
         },
         modifier = modifier
     ) {

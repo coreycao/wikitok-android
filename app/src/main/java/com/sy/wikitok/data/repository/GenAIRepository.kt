@@ -1,5 +1,9 @@
 package com.sy.wikitok.data.repository
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import com.aallam.openai.api.chat.ChatCompletion
 import com.aallam.openai.api.chat.ChatCompletionRequest
 import com.aallam.openai.api.chat.ChatMessage
@@ -13,8 +17,12 @@ import com.aallam.openai.api.model.ModelId
 import com.aallam.openai.client.OpenAI
 import com.aallam.openai.client.OpenAIHost
 import com.sy.wikitok.BuildConfig
+import com.sy.wikitok.data.repository.ConfigRepository.Companion.AI_HOST
+import com.sy.wikitok.data.repository.ConfigRepository.Companion.MODEL_ID
+import com.sy.wikitok.data.repository.ConfigRepository.Companion.SYSTEM_PROMPT
 import com.sy.wikitok.network.WikiApiService
 import com.sy.wikitok.utils.Logger
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.add
@@ -27,22 +35,10 @@ import kotlin.time.Duration.Companion.seconds
  * @author Yeung
  * @date 2025/7/15
  */
-class GenAIRepository(private val wikiApiService: WikiApiService) {
-
-    companion object {
-        const val MODEL_ID = "THUDM/GLM-4.1V-9B-Thinking"
-        const val AI_HOST = "https://api.siliconflow.cn/v1/"
-        const val SYSTEM_PROMPT = """
-            你是一名小助手，善于洞察和总结。
-            在接下来的对话中，请你根据我的问题，给出答案。
-            """
-        const val CHAT_SYSTEM_PROMPT = """
-            你是一名 AI 智能助理，拥有丰富的百科知识，并且擅长耐心地向他们讲解相关的知识。
-            在接下来的对话中，请你根据用户的问题，给出耐心的回复。
-            对于不清楚、不知道的东西，你一律回答不知道就好。
-        """
-    }
-
+class GenAIRepository(
+    private val wikiApiService: WikiApiService,
+    private val dataStore: DataStore<Preferences>
+) {
     private fun genAIClient() = OpenAI(
         token = BuildConfig.GENAI_API_KEY,
         timeout = Timeout(socket = 60.seconds),
@@ -50,76 +46,64 @@ class GenAIRepository(private val wikiApiService: WikiApiService) {
     )
 
     private fun modelId() = ModelId(MODEL_ID)
+
     private val summaryAIClient = OpenAI(
         token = BuildConfig.GENAI_API_KEY,
         timeout = Timeout(socket = 60.seconds),
         host = OpenAIHost(AI_HOST),
     )
 
-    fun summaryFavorite(items: List<String>) = flow {
-        emit(runCatching {
-            val chatCompletionRequest = ChatCompletionRequest(
-                model = modelId(),
-                messages = listOf(
-                    ChatMessage(
-                        role = ChatRole.System,
-                        content = SYSTEM_PROMPT
-                    ),
+    fun getAISummary(favList: List<String>) = flow {
+        val favListHash = favList.hashCode()
+        val summaryCacheKey = stringPreferencesKey("summary_$favListHash")
+        // 从 dataStore 中读取缓存
+        val cachedSummary = dataStore.data.firstOrNull()?.get(summaryCacheKey)
 
-                    ChatMessage(
-                        role = ChatRole.User,
-                        content = """
-                        我将给出你一份我在浏览维基百科时收藏的词条清单，
-                        请你基于这些词条，总结出一份知识体系，谈谈你对我的洞察和了解。
-                        我收藏的词条如下：
-                        ${items.joinToString("\n")}
-                                """.trimIndent()
-                    )
+        if (cachedSummary != null) {
+            // 如果有缓存，直接返回
+            emit(Result.success(cachedSummary))
+        } else {
+            // 如果没有缓存，请求网络
+            emit(runCatching {
+                val summaryResponse = requestSummaryFromNetwork(favList)
+                // 移除旧的不匹配的缓存，并保存新的缓存到 dataStore
+                dataStore.edit { preferences ->
+                    preferences.clear()
+                    preferences[summaryCacheKey] = summaryResponse
+                }
+                summaryResponse
+            })
+        }
+    }
+
+    private suspend fun requestSummaryFromNetwork(items: List<String>): String {
+        val chatCompletionRequest = ChatCompletionRequest(
+            model = modelId(),
+            messages = listOf(
+                ChatMessage(
+                    role = ChatRole.System,
+                    content = SYSTEM_PROMPT
+                ),
+                ChatMessage(
+                    role = ChatRole.User,
+                    content = """
+                    我将给出你一份我在浏览维基百科时收藏的词条清单，
+                    请你基于这些词条，总结出一份知识体系，谈谈你对我的洞察和了解。
+                    我收藏的词条如下：
+                    ${items.joinToString("\n")}                
+                    """.trimIndent()
                 )
             )
-            val completion: ChatCompletion = summaryAIClient.chatCompletion(chatCompletionRequest)
-            val responseMessage = completion.choices.first().message.content
-            Logger.d(
-                tag = "GenAIRepository",
-                message = responseMessage.toString()
-            )
-            responseMessage ?: ""
-        })
+        )
+        val completion: ChatCompletion = summaryAIClient.chatCompletion(chatCompletionRequest)
+        return completion.choices.first().message.content ?: ""
     }
 
     private val chatbot = OpenAI(
         token = BuildConfig.GENAI_API_KEY,
-        timeout = Timeout(socket = 20.seconds),
+        timeout = Timeout(socket = 60.seconds),
         host = OpenAIHost(AI_HOST),
     )
-
-    suspend fun sendMessage(messageItemList: List<ChatMessage>): Result<String> {
-        val chatCompletionRequest = ChatCompletionRequest(
-            model = modelId(),
-            messages = messageItemList.toMutableList().apply {
-                add(
-                    0, ChatMessage(
-                        role = ChatRole.System,
-                        content = CHAT_SYSTEM_PROMPT
-                    )
-                )
-            }
-        )
-        return try {
-            val completion = chatbot.chatCompletion(chatCompletionRequest)
-            val responseMessage = completion.choices.first().message.content
-
-            if (responseMessage == null) {
-                Result.failure(Exception("response is null"))
-            } else {
-                Result.success(responseMessage)
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-
     suspend fun genContentWithTool() {
         val aiClient = genAIClient()
         val modelId = modelId()

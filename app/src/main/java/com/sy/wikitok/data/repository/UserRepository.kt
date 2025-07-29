@@ -3,11 +3,14 @@ package com.sy.wikitok.data.repository
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import com.sy.wikitok.data.DEFAULT_LANG_ID
+import com.sy.wikitok.data.Langs
 import com.sy.wikitok.data.Language
 import com.sy.wikitok.data.model.AppUpdateInfo
 import com.sy.wikitok.network.AppUpdateApiService
 import com.sy.wikitok.network.DownloadState
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import java.io.File
 
 /**
@@ -26,6 +29,11 @@ class UserRepository(
         dataStore.edit { preference ->
             preference[KEY_LANG] = lang.id
         }
+    }
+
+    fun observeLanguageSetting() = dataStore.data.map { preference ->
+        val langId = preference[KEY_LANG] ?: DEFAULT_LANG_ID
+        Langs[langId]!! /*?: DEFAULT_LANGUAGE*/
     }
 
     fun observeAppVersion(): Flow<Result<AppUpdateInfo>> = appUpdateApiService.observerVersionInfo()

@@ -5,10 +5,13 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import com.sy.wikitok.data.db.FavoriteDao
 import com.sy.wikitok.data.db.FeedDao
+import com.sy.wikitok.data.repository.AIChatRepository
+import com.sy.wikitok.data.repository.ConfigRepository
 import com.sy.wikitok.data.repository.GenAIRepository
 import com.sy.wikitok.data.repository.UserRepository
 import com.sy.wikitok.data.repository.WikiRepository
-import com.sy.wikitok.data.repository.dataStore
+import com.sy.wikitok.data.repository.settingDataStore
+import com.sy.wikitok.data.repository.summaryDataStore
 import com.sy.wikitok.network.WikiApiService
 import org.koin.android.ext.koin.androidApplication
 import org.koin.dsl.module
@@ -19,17 +22,19 @@ import org.koin.dsl.module
  */
 
 val repositoryModule = module {
-    single { UserRepository(get(), androidApplication().dataStore) }
+    single { UserRepository(get(), androidApplication().settingDataStore) }
     single {
         provideWikiRepository(
             get(),
             get(),
             get(),
-            androidApplication().dataStore,
+            androidApplication().settingDataStore,
             androidApplication().assets
         )
     }
-    single { GenAIRepository(get()) }
+    single { GenAIRepository(get(), androidApplication().summaryDataStore) }
+    single { ConfigRepository(get()) }
+    single { AIChatRepository(get()) }
 }
 
 fun provideWikiRepository(
