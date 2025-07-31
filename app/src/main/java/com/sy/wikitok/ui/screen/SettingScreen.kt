@@ -65,8 +65,7 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sy.wikitok.BuildConfig
 import com.sy.wikitok.R
-import com.sy.wikitok.data.Langs
-import com.sy.wikitok.data.Language
+import com.sy.wikitok.data.model.Language
 import com.sy.wikitok.ui.component.NetworkImage
 import com.sy.wikitok.ui.component.ProgressCircle
 import com.sy.wikitok.utils.Logger
@@ -178,19 +177,19 @@ fun SettingScreen(
                 is SettingViewModel.DialogState.About -> {
                     val urlHandler = LocalUriHandler.current
                     val strUrl = "https://github.com/coreycao/wikitok-android"
-                    val link = LinkAnnotation.Url(
-                        strUrl,
-                        styles = TextLinkStyles(SpanStyle(color = Color.Blue))
-                    ) {
-                        val url = (it as LinkAnnotation.Url).url
-                        urlHandler.openUri(url)
-                    }
                     val annotatedText = buildAnnotatedString {
                         append(
-                            "This App is opensource\n\nFind it on Github\n\n"
+                            "This App is opensource\n\nFind it on "
                         )
+                        val link = LinkAnnotation.Url(
+                            strUrl,
+                            styles = TextLinkStyles(SpanStyle(color = Color.Blue))
+                        ) {
+                            val url = (it as LinkAnnotation.Url).url
+                            urlHandler.openUri(url)
+                        }
                         withLink(link) {
-                            append(strUrl)
+                            append("Github")
                         }
                     }
                     MessageDialog(annotatedText) {
@@ -201,8 +200,10 @@ fun SettingScreen(
                 is SettingViewModel.DialogState.Option -> {
                     SelectOptionDialog(
                         options = languageOpts,
-                        onOptionSelected = { option ->
-                            settingViewModel.changeLanguage(option)
+                        onOptionSelected = { oldLang, newLang ->
+                            if (oldLang == null) return@SelectOptionDialog
+                            if (oldLang == newLang) return@SelectOptionDialog
+                            settingViewModel.changeLanguage(oldLang, newLang)
                             settingViewModel.dismissDialog()
                         },
                         onDismissRequest = {
@@ -401,9 +402,12 @@ fun MessageDialog(message: AnnotatedString, onDismiss: () -> Unit = {}) {
 @Composable
 fun SelectOptionDialog(
     options: List<Language>,
-    onOptionSelected: (Language) -> Unit,
+    onOptionSelected: (old: Language?, new: Language) -> Unit,
     onDismissRequest: () -> Unit
 ) {
+
+    val selectedItem = remember(options) { options.find { it.selected }  }
+
     Dialog(onDismissRequest = onDismissRequest) {
         Surface(shape = MaterialTheme.shapes.medium) {
             Column(
@@ -420,8 +424,8 @@ fun SelectOptionDialog(
                     items(options.count()) { idx ->
                         val item = options[idx]
                         SelectOptionItem(
-                            onItemSelected = { ->
-                                onOptionSelected(item)
+                            onItemSelected = {
+                                onOptionSelected(selectedItem, item)
                                 onDismissRequest
                             },
                             itemIconUrl = item.flag,

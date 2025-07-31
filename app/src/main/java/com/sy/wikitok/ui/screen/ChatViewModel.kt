@@ -1,5 +1,6 @@
 package com.sy.wikitok.ui.screen
 
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sy.wikitok.data.db.MessageType
@@ -28,6 +29,14 @@ class ChatViewModel(
                 你有什么想更深入了解的？
             """.trimIndent()
             )
+        }
+    }
+
+    val chatListState = LazyListState()
+
+    fun scrollToTop() {
+        viewModelScope.launch {
+            chatListState.scrollToItem(index = 0)
         }
     }
 

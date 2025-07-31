@@ -1,24 +1,24 @@
 package com.sy.wikitok.data.repository
 
 import android.content.res.AssetManager
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import com.sy.wikitok.data.DEFAULT_LANG_ID
-import com.sy.wikitok.data.Langs
 import com.sy.wikitok.data.db.FavoriteDao
 import com.sy.wikitok.data.db.FeedDao
+import com.sy.wikitok.data.db.LangDao
 import com.sy.wikitok.data.db.WikiEntity
+import com.sy.wikitok.data.model.defaultLanguage
 import com.sy.wikitok.data.model.WikiApiResponse
 import com.sy.wikitok.data.model.WikiModel
 import com.sy.wikitok.data.model.toWikiModel
 import com.sy.wikitok.data.model.toFavoriteEntity
 import com.sy.wikitok.data.model.toWikiModelList
+import com.sy.wikitok.data.model.toModel
 import com.sy.wikitok.network.WikiApiService
 import com.sy.wikitok.utils.Logger
 import com.sy.wikitok.utils.loadJsonFromAssetsAsFlow
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -32,12 +32,13 @@ class WikiRepository(
     private val wikiApiService: WikiApiService,
     private val feedDao: FeedDao,
     private val favDao: FavoriteDao,
-    private val dataStore: DataStore<Preferences>,
+    private val langDao: LangDao,
     private val assets: AssetManager
 ) {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val observableRemoteWikiFeed = observeLanguageSetting()
+        .distinctUntilChanged()
         .flatMapLatest { language ->
             Logger.d("Language Changed: ${language.name}")
             wikiApiService.observerWikiList(language.api)
@@ -59,10 +60,10 @@ class WikiRepository(
                 }
         }
 
-    private fun observeLanguageSetting() = dataStore.data.map { preference ->
-        val langId = preference[KEY_LANG] ?: DEFAULT_LANG_ID
-        Langs[langId]!!
-    }
+    private fun observeLanguageSetting() = langDao.observeSelectedLanguage()
+        .map { entity ->
+            entity?.toModel() ?: defaultLanguage()
+        }
 
     companion object {
         const val WIKI_ASSET = "wiki.json"

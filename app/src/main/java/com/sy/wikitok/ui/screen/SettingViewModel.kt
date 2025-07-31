@@ -2,24 +2,26 @@ package com.sy.wikitok.ui.screen
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.sy.wikitok.data.Langs
-import com.sy.wikitok.data.Language
+import com.sy.wikitok.data.model.Language
+import com.sy.wikitok.data.model.defaultLanguage
 import com.sy.wikitok.data.model.AppUpdateInfo
 import com.sy.wikitok.data.repository.UserRepository
 import com.sy.wikitok.data.repository.WikiRepository
 import com.sy.wikitok.network.DownloadState
 import com.sy.wikitok.utils.Logger
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import java.io.File
 
@@ -68,15 +70,15 @@ class SettingViewModel(
     private val _downloadState = MutableStateFlow<DownloadUiState>(DownloadUiState.None)
     val downloadState = _downloadState.asStateFlow()
 
-    val languages = userRepo.observeLanguageSetting()
-        .map { currentLang->
-            Langs.values.toMutableList().map {
-                it.copy(selected = currentLang.id == it.id)
-            }
-        }.stateIn(
+    val languages = userRepo.observerLanguages()
+        .onEach {
+            Logger.d("Available languages: ${it.joinToString { lang -> lang.name }}")
+        }
+        .filter { it.isNotEmpty() }
+        .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = Langs.values.toList()
+            initialValue = listOf(defaultLanguage())
         )
 
     fun showAboutDialog() {
@@ -97,13 +99,15 @@ class SettingViewModel(
         }
     }
 
-    fun changeLanguage(lang: Language) {
+    fun changeLanguage(oldLang: Language, newLang: Language) {
         viewModelScope.launch {
-            userRepo.updateLanguage(lang)
+            Logger.d("changeLanguage from ${oldLang.name} to ${newLang.name}")
+            userRepo.switchSelectedLanguage(oldLang, newLang)
         }
     }
 
-    private var cheekAppUpdateJob : Job? = null
+    private var cheekAppUpdateJob: Job? = null
+
     fun checkAppUpdate() {
         if (cheekAppUpdateJob?.isActive == true) return
         cheekAppUpdateJob = viewModelScope.launch {
@@ -123,18 +127,18 @@ class SettingViewModel(
 
     fun downloadAppUpdate(versionInfo: AppUpdateInfo, downloadDir: File?) {
         viewModelScope.launch {
-            if(downloadDir == null){
+            if (downloadDir == null) {
                 Logger.e("downloadDir == null")
                 _effect.emit(Effect.Toast("下载失败"))
                 return@launch
             }
-            if (downloadDir.exists().not()){
+            if (downloadDir.exists().not()) {
                 downloadDir.mkdirs()
             }
-            val apkUrl = versionInfo.downloadUrl.android.url
-            val apkName = "${versionInfo.downloadUrl.android.md5}.apk"
-            // val apkUrl = "https://github.com/coreycao/wikitok-android/releases/download/v0.1.1-alpha/wikitok-release.apk"
-            // val apkName = "app-release.apk"
+//            val apkUrl = versionInfo.downloadUrl.android.url
+//            val apkName = "${versionInfo.downloadUrl.android.md5}.apk"
+             val apkUrl = "https://github.com/coreycao/wikitok-android/releases/download/v0.1.1-alpha/wikitok-release.apk"
+             val apkName = "app-release.apk"
             val apkFile = File(downloadDir, apkName)
             if (apkFile.exists()) {
                 Logger.d("already downloaded")
@@ -149,9 +153,11 @@ class SettingViewModel(
                         is DownloadState.Error -> {
                             _effect.emit(Effect.Toast("下载失败"))
                         }
+
                         is DownloadState.Progress -> {
                             _downloadState.value = DownloadUiState.Downloading(state.progress)
                         }
+
                         is DownloadState.Success -> {
                             _effect.emit(Effect.Toast("下载完成"))
                             _downloadState.value = DownloadUiState.Completed(apkFile)
@@ -167,7 +173,10 @@ class SettingViewModel(
             if (favorites.isEmpty()) {
                 _effect.emit(Effect.Toast("您的收藏为空"))
             } else {
-                _effect.emit(Effect.Export(Json.encodeToString(favorites)))
+                val exportedData = withContext(Dispatchers.IO) {
+                    Json.encodeToString(favorites)
+                }
+                _effect.emit(Effect.Export(exportedData))
             }
         }
     }

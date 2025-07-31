@@ -3,14 +3,17 @@ package com.sy.wikitok.ui.screen
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,11 +24,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +41,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,6 +53,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sy.wikitok.data.model.WikiModel
+import com.sy.wikitok.ui.component.Collapsible
 import com.sy.wikitok.ui.component.MarkdownPreview
 import com.sy.wikitok.utils.Logger
 import org.koin.androidx.compose.koinViewModel
@@ -65,18 +72,28 @@ fun ChatScreen(
     onBack: () -> Unit = {}
 ) {
 
-    val viewModel: ChatViewModel = koinViewModel<ChatViewModel>(
+    val chatViewModel: ChatViewModel = koinViewModel<ChatViewModel>(
         parameters = { parametersOf(wikiInfo) }
     )
 
-    val msgState = viewModel.chatUiState.collectAsStateWithLifecycle()
+    val msgState = chatViewModel.chatUiState.collectAsStateWithLifecycle()
+
+    val chatListState = chatViewModel.chatListState
+
+    val isFABVisible by remember(chatListState) {
+        derivedStateOf {
+            chatListState.firstVisibleItemIndex > 0
+        }
+    }
 
     LaunchedEffect(Unit) {
         Logger.d("ChatScreen LaunchedEffect")
     }
 
     Scaffold(
-        // modifier = Modifier.padding(top = homeInnerPadding.calculateTopPadding()),
+        modifier = Modifier
+            .imePadding()
+            .statusBarsPadding(),
         topBar = {
             TopAppBar(
                 title = { Text("Wiki Chat") },
@@ -87,27 +104,43 @@ fun ChatScreen(
                 }
             )
         },
+        floatingActionButton = {
+            if (isFABVisible) {
+                FloatingActionButton(
+                    onClick = {
+                        chatViewModel.scrollToTop()
+                    }) {
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowUp,
+                        contentDescription = null
+                    )
+                }
+            }
+        },
         bottomBar = {
             ChatInput(
                 onSendMessage = { messageContent ->
-                    viewModel.sendMessage(messageContent)
+                    chatViewModel.sendMessage(messageContent)
                 }
             )
         },
     ) { innerPadding ->
         Surface(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .padding(innerPadding)
         ) {
-            ChatList(messages = msgState.value, viewModel)
+            ChatList(messages = msgState.value, chatViewModel)
         }
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ChatList(messages: List<MessageItem>, viewModel: ChatViewModel) {
     LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        state = viewModel.chatListState,
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -132,7 +165,7 @@ fun ChatList(messages: List<MessageItem>, viewModel: ChatViewModel) {
                 }
 
                 is MessageItemState.Error -> {
-                    ResponseError{
+                    ResponseError {
                         viewModel.retryMessage(message.id)
                     }
                 }
@@ -160,7 +193,9 @@ fun ResponseText(content: String) {
     Column() {
         Icon(imageVector = Icons.Filled.Face, contentDescription = null)
         Spacer(modifier = Modifier.height(8.dp))
-        MarkdownPreview(text = content)
+        Collapsible(collapsedHeight = 128.dp, initiallyExpanded = true) {
+            MarkdownPreview(text = content)
+        }
     }
 }
 
@@ -178,7 +213,7 @@ fun ResponseLoading() {
 }
 
 @Composable
-fun ResponseError(onRetry:()-> Unit = {}) {
+fun ResponseError(onRetry: () -> Unit = {}) {
     Column() {
         val sizeModifier = Modifier.size(24.dp)
         Icon(modifier = sizeModifier, imageVector = Icons.Filled.Face, contentDescription = null)
@@ -195,12 +230,13 @@ fun ResponseError(onRetry:()-> Unit = {}) {
         }
         Spacer(modifier = Modifier.height(8.dp))
 
-        Icon(modifier = sizeModifier.clickable(
-            onClick = {
-                Logger.d(tag = "ChatScreen", message = "click retry button")
-                onRetry()
-            }
-        ), imageVector = Icons.Filled.Refresh, contentDescription = null)
+        Icon(
+            modifier = sizeModifier.clickable(
+                onClick = {
+                    Logger.d(tag = "ChatScreen", message = "click retry button")
+                    onRetry()
+                }
+            ), imageVector = Icons.Filled.Refresh, contentDescription = null)
     }
 }
 
@@ -241,7 +277,8 @@ fun ChatInput(
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.Send,
-                contentDescription = "发送"
+                contentDescription = "发送",
+                tint = if (text.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
             )
         }
     }

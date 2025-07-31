@@ -1,5 +1,6 @@
 package com.sy.wikitok.data.model
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
@@ -9,22 +10,33 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class RemoteConfig(
     val generateAI: GenerateAI,
-    val languages: List<Language>
+    val languages: List<Language>,
 )
 
 @Serializable
 data class GenerateAI(
-    val enable: Boolean,
-    val host: String,
-    val model: String,
-    val prompts: List<String>
+    val summaryAI: SummaryAI,
+    val chatAI: ChatAI
 )
 
 @Serializable
-data class Language(
-    val id: String,
-    val name: String,
-    val flag: String,
-    val api: String,
-    val default: Boolean
+data class SummaryAI(
+    val enable: Boolean,
+    val host: String,
+    val model: String,
+    @SerialName("system_prompt")
+    val systemPrompt: String,
+    @SerialName("biz_prompt")
+    val bizPrompt: String
+)
+
+@Serializable
+data class ChatAI(
+    val enable: Boolean,
+    val host: String,
+    val model: String,
+    @SerialName("system_prompt")
+    val systemPrompt: String,
+    @SerialName("biz_prompt")
+    val bizPrompt: String
 )

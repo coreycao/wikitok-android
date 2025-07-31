@@ -11,7 +11,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class WikiApiResponse(
-    val batchcomplete: String,
+    val batchcomplete: String? = null,
     val `continue`: Continue,
     val query: Query
 )
@@ -32,7 +32,7 @@ data class Page(
     val pageid: Int,
     val ns: Int,
     val title: String,
-    val extract: String,
+    val extract: String? = null,
     val contentmodel: String,
     val pagelanguage: String,
     val pagelanguagehtmlcode: String,
@@ -53,7 +53,7 @@ fun Page.toWikiModel(): WikiModel {
     return WikiModel(
         id = pageid.toString(),
         title = title,
-        content = extract,
+        content = extract?:"",
         imgUrl = thumbnail?.source ?: "",
         linkUrl = canonicalurl
     )

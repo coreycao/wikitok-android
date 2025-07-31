@@ -8,7 +8,10 @@ import androidx.room.TypeConverters
  * @author Yeung
  * @date 2025/3/21
  */
-@Database(entities = [FavoriteEntity::class, WikiEntity::class, MessageEntity::class], version = 2)
+@Database(
+    entities = [FavoriteEntity::class, WikiEntity::class, MessageEntity::class, LanguageEntity::class],
+    version = 2
+)
 @TypeConverters(MessageTypeConverter::class)
 abstract class WikiDataBase : RoomDatabase() {
     abstract fun favoriteDao(): FavoriteDao
@@ -16,4 +19,6 @@ abstract class WikiDataBase : RoomDatabase() {
     abstract fun feedDao(): FeedDao
 
     abstract fun messageDao(): MessageDao
+
+    abstract fun langDao(): LangDao
 }

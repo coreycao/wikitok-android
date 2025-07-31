@@ -28,6 +28,20 @@ class FeedViewModel(
     private val genAIRepository: GenAIRepository
 ) : ViewModel() {
 
+    sealed class Effect {
+        data class Toast(val message: String) : Effect()
+    }
+
+    sealed class UiState {
+        data class Success(val wikiList: List<WikiModel>) : UiState()
+        data class Error(val message: String) : UiState()
+        object Loading : UiState()
+        object Empty : UiState()
+    }
+
+    private val _effect = MutableSharedFlow<Effect>()
+    val effect = _effect.asSharedFlow()
+
     // keep view pager state
     var currentPage by mutableIntStateOf(0)
         private set
@@ -40,6 +54,7 @@ class FeedViewModel(
         private set
 
     var refreshJob: Job? = null
+
     fun refresh() {
         if (refreshJob?.isActive == true) {
             Logger.d(tag = "FeedViewModel", message = "refreshJob is already running")
@@ -60,20 +75,6 @@ class FeedViewModel(
         }
     }
 
-    sealed class Effect {
-        data class Toast(val message: String) : Effect()
-    }
-
-    private val _effect = MutableSharedFlow<Effect>()
-    val effect = _effect.asSharedFlow()
-
-    sealed class UiState {
-        data class Success(val wikiList: List<WikiModel>) : UiState()
-        data class Error(val message: String) : UiState()
-        object Loading : UiState()
-        object Empty : UiState()
-    }
-
     val feedUiState = wikiRepository.observableFeed
         .map { list ->
             if (list.isEmpty()) {
@@ -89,21 +90,26 @@ class FeedViewModel(
             initialValue = UiState.Loading
         )
 
-    init {
-        Logger.d(tag = "FeedViewModel", message = "onCreated")
-        viewModelScope.launch {
-            isRefreshing = true
-            wikiRepository.observableRemoteWikiFeed.collect {
-                Logger.d(message = "collect remote feed")
-                isRefreshing = false
-            }
-        }
-    }
-
     fun onFavoriteToggled(wikiModel: WikiModel) {
         viewModelScope.launch {
             Logger.d(tag = "FeedViewModel", message = "toggleFavorite, $wikiModel")
             wikiRepository.toggleFavorite(wikiModel)
         }
+    }
+
+    init {
+        Logger.d(tag = "FeedViewModel", message = "onCreated")
+        viewModelScope.launch {
+            wikiRepository.observableRemoteWikiFeed
+                .collect {
+                    Logger.d(message = "collect remote feed")
+                    isRefreshing = false
+                }
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        Logger.d(tag = "FeedViewModel", message = "onCleared")
     }
 }

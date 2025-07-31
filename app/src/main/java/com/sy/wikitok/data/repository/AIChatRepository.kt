@@ -13,9 +13,6 @@ import com.sy.wikitok.data.db.MessageEntity
 import com.sy.wikitok.data.db.MessageId
 import com.sy.wikitok.data.db.MessageType
 import com.sy.wikitok.data.model.WikiModel
-import com.sy.wikitok.data.repository.ConfigRepository.Companion.AI_HOST
-import com.sy.wikitok.data.repository.ConfigRepository.Companion.CHAT_SYSTEM_PROMPT
-import com.sy.wikitok.data.repository.ConfigRepository.Companion.MODEL_ID
 import com.sy.wikitok.utils.Logger
 import kotlin.time.Duration.Companion.seconds
 
@@ -24,15 +21,7 @@ import kotlin.time.Duration.Companion.seconds
  * @date 2025/7/28
  */
 
-class AIChatRepository(private val messageDao: MessageDao) {
-
-    private val chatbot = OpenAI(
-        token = BuildConfig.GENAI_API_KEY,
-        timeout = Timeout(socket = 60.seconds),
-        host = OpenAIHost(AI_HOST),
-    )
-
-    private fun modelId() = ModelId(MODEL_ID)
+class AIChatRepository(private val messageDao: MessageDao, private val configRepository: ConfigRepository) {
 
     fun observableMessageList(wikiModel: WikiModel) = messageDao.observeMessages(wikiModel.id)
 
@@ -69,6 +58,9 @@ class AIChatRepository(private val messageDao: MessageDao) {
     }
 
     suspend fun wikiChatCompletion(wikiModel: WikiModel): Result<String> {
+
+        val aiConfig = configRepository.readChatAIConfig()
+
         val loadingMsg = MessageEntity(
             wikiId = wikiModel.id,
             type = MessageType.LOADING,
@@ -79,25 +71,30 @@ class AIChatRepository(private val messageDao: MessageDao) {
         val systemMessage = ChatMessage(
             role = ChatRole.System,
             content = """
-                $CHAT_SYSTEM_PROMPT
+                ${aiConfig.systemPrompt}
                 接下来要讨论的词条是：
-                
-                词条名：${wikiModel.title}
-                
-                词条简介：${wikiModel.content}
+                 词条名：${wikiModel.title}
+                 词条简介：${wikiModel.content}
             """.trimIndent()
         )
         val messages = buildChatMessages(
             messageDao.readMessages(wikiModel.id)
         )
         val chatCompletionRequest = ChatCompletionRequest(
-            model = modelId(),
+            model = ModelId(aiConfig.model),
             messages = messages.toMutableList().apply {
                 add(0, systemMessage) // Add system message at the beginning
             }
         )
 
         return try {
+
+            val chatbot = OpenAI(
+                token = BuildConfig.GENAI_API_KEY,
+                timeout = Timeout(socket = 60.seconds),
+                host = OpenAIHost(aiConfig.host)
+            )
+
             val completion = chatbot.chatCompletion(chatCompletionRequest)
             val responseMessage = completion.choices.first().message.content
             messageDao.removeMessage(MessageId(loadingMsgId)) // Remove loading message
@@ -141,6 +138,6 @@ class AIChatRepository(private val messageDao: MessageDao) {
                 role = if (item.type == MessageType.USER) ChatRole.User else ChatRole.Assistant,
                 content = item.content
             )
-        }.toMutableList()
+        }.toList()
 
 }

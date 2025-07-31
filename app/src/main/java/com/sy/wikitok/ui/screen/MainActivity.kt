@@ -44,6 +44,7 @@ import com.sy.wikitok.utils.Logger
 import com.sy.wikitok.utils.SnackbarManager
 import kotlinx.coroutines.FlowPreview
 import kotlinx.serialization.Serializable
+import org.koin.androidx.compose.koinViewModel
 
 /**
  * @author Yeung
@@ -165,6 +166,7 @@ private fun HomeScaffold() {
 
 @Composable
 fun MainScreenWithBottomBar(homeInnerPadding: PaddingValues, navController: NavHostController) {
+    val mainViewModel = koinViewModel<MainViewModel>()
     val internalNavController = rememberNavController()
     Scaffold(
         bottomBar = {
@@ -207,7 +209,7 @@ fun MainScreenWithBottomBar(homeInnerPadding: PaddingValues, navController: NavH
 
             composable<MainRoute.Feed> {
                 FeedScreen(
-//                    modifier = Modifier.padding(innerPadding),
+                    // modifier = Modifier.padding(innerPadding),
                     navigateToChat = { wikiModel ->
                     navController.navigate(MainRoute.Chat(wikiModel.id, wikiModel.title,wikiModel.content, wikiModel.imgUrl, wikiModel.linkUrl))
                 })

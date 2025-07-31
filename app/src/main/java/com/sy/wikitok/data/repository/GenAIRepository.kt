@@ -19,9 +19,7 @@ import com.aallam.openai.client.OpenAIHost
 import com.sy.wikitok.BuildConfig
 import com.sy.wikitok.data.repository.ConfigRepository.Companion.AI_HOST
 import com.sy.wikitok.data.repository.ConfigRepository.Companion.MODEL_ID
-import com.sy.wikitok.data.repository.ConfigRepository.Companion.SYSTEM_PROMPT
 import com.sy.wikitok.network.WikiApiService
-import com.sy.wikitok.utils.Logger
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.JsonObject
@@ -37,21 +35,9 @@ import kotlin.time.Duration.Companion.seconds
  */
 class GenAIRepository(
     private val wikiApiService: WikiApiService,
+    private val configRepository: ConfigRepository,
     private val dataStore: DataStore<Preferences>
 ) {
-    private fun genAIClient() = OpenAI(
-        token = BuildConfig.GENAI_API_KEY,
-        timeout = Timeout(socket = 60.seconds),
-        host = OpenAIHost(AI_HOST),
-    )
-
-    private fun modelId() = ModelId(MODEL_ID)
-
-    private val summaryAIClient = OpenAI(
-        token = BuildConfig.GENAI_API_KEY,
-        timeout = Timeout(socket = 60.seconds),
-        host = OpenAIHost(AI_HOST),
-    )
 
     fun getAISummary(favList: List<String>) = flow {
         val favListHash = favList.hashCode()
@@ -77,27 +63,41 @@ class GenAIRepository(
     }
 
     private suspend fun requestSummaryFromNetwork(items: List<String>): String {
+        val aiConfig = configRepository.readSummaryAIConfig()
         val chatCompletionRequest = ChatCompletionRequest(
-            model = modelId(),
+            model = ModelId(aiConfig.model),
             messages = listOf(
                 ChatMessage(
                     role = ChatRole.System,
-                    content = SYSTEM_PROMPT
+                    content = aiConfig.systemPrompt
                 ),
                 ChatMessage(
                     role = ChatRole.User,
                     content = """
-                    我将给出你一份我在浏览维基百科时收藏的词条清单，
-                    请你基于这些词条，总结出一份知识体系，谈谈你对我的洞察和了解。
-                    我收藏的词条如下：
+                    ${aiConfig.bizPrompt}
                     ${items.joinToString("\n")}                
                     """.trimIndent()
                 )
             )
         )
-        val completion: ChatCompletion = summaryAIClient.chatCompletion(chatCompletionRequest)
+        val aiClient = OpenAI(
+            token = BuildConfig.GENAI_API_KEY,
+            timeout = Timeout(socket = 60.seconds),
+            host = OpenAIHost(aiConfig.host),
+        )
+        val completion: ChatCompletion = aiClient.chatCompletion(chatCompletionRequest)
         return completion.choices.first().message.content ?: ""
     }
+
+   /** gen ai with function tools, still in progress**/
+
+    private fun genAIClient() = OpenAI(
+        token = BuildConfig.GENAI_API_KEY,
+        timeout = Timeout(socket = 60.seconds),
+        host = OpenAIHost(AI_HOST),
+    )
+
+    private fun modelId() = ModelId(MODEL_ID)
 
     private val chatbot = OpenAI(
         token = BuildConfig.GENAI_API_KEY,

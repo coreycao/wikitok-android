@@ -3,7 +3,6 @@ package com.sy.wikitok.data.repository
 import android.app.Application
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 
 /**
@@ -11,12 +10,12 @@ import androidx.datastore.preferences.preferencesDataStore
  * @date 2025/4/11
  */
 
-private const val SETTINGS_NAME = "settings"
+private const val DATASTORE_SETTINGS = "settings"
 
-val Application.settingDataStore: DataStore<Preferences> by preferencesDataStore(name = SETTINGS_NAME)
+private const val DATASTORE_SUMMARY = "summary"
 
-val KEY_LANG = stringPreferencesKey("lang")
+val Application.summaryDataStore: DataStore<Preferences> by preferencesDataStore(name = DATASTORE_SUMMARY)
 
-private const val SUMMARY_NAME = "summary"
+private const val DATASTORE_CONFIG = "config"
 
-val Application.summaryDataStore: DataStore<Preferences> by preferencesDataStore(name = SUMMARY_NAME)
+val Application.configDataStore : DataStore<Preferences> by preferencesDataStore(name = DATASTORE_CONFIG)

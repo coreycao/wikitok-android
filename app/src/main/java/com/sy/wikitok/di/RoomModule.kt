@@ -2,8 +2,10 @@ package com.sy.wikitok.di
 
 import android.content.Context
 import androidx.room.Room
+import com.sy.wikitok.BuildConfig
 import com.sy.wikitok.data.db.FavoriteDao
 import com.sy.wikitok.data.db.FeedDao
+import com.sy.wikitok.data.db.LangDao
 import com.sy.wikitok.data.db.MessageDao
 import com.sy.wikitok.data.db.WikiDataBase
 import org.koin.dsl.module
@@ -19,7 +21,8 @@ val roomModule = module {
     single { provideFeedDao(get()) }
     single { provideFavoriteDao(get()) }
     single { provideDatabase(get()) }
-    single { providerMessageDat(get()) }
+    single { provideMessageDao(get()) }
+    single { provideLangDao(get()) }
 }
 
 private fun provideFeedDao(database: WikiDataBase): FeedDao {
@@ -30,8 +33,12 @@ private fun provideFavoriteDao(database: WikiDataBase): FavoriteDao {
     return database.favoriteDao()
 }
 
-private fun providerMessageDat(dataBase: WikiDataBase): MessageDao {
+private fun provideMessageDao(dataBase: WikiDataBase): MessageDao {
     return dataBase.messageDao()
+}
+
+private fun provideLangDao(dataBase: WikiDataBase): LangDao {
+    return dataBase.langDao()
 }
 
 private fun provideDatabase(context: Context): WikiDataBase {
@@ -39,6 +46,8 @@ private fun provideDatabase(context: Context): WikiDataBase {
         context,
         WikiDataBase::class.java,
         DB_NAME
-    ).build()
+    ).apply {
+        if (BuildConfig.DEBUG) fallbackToDestructiveMigration(true)
+    }.build()
 }
 
