@@ -14,5 +14,28 @@
       "system_prompt": "你是一名 AI 智能助理，拥有丰富的百科知识，并且擅长耐心地向他们讲解相关的知识。\n在接下来的对话中，请你根据用户的问题，给出耐心的回复。\n对于不清楚、不知道的东西，你一律回答不知道就好。",
       "biz_prompt": ""
     }
-  }
+  },
+  "languages": [
+    {
+      "id": "zh-cn",
+      "name": "中文（中国大陆）",
+      "flag": "https://hatscripts.github.io/circle-flags/flags/cn.svg",
+      "api": "https://zh.wikipedia.org/w/api.php",
+      "selected": true
+    },
+    {
+      "id": "en",
+      "name": "English",
+      "flag": "https://hatscripts.github.io/circle-flags/flags/us.svg",
+      "api": "https://en.wikipedia.org/w/api.php",
+      "selected": false
+    },
+    {
+      "id": "ja",
+      "name": "日本語",
+      "flag": "https://hatscripts.github.io/circle-flags/flags/jp.svg",
+      "api": "https://ja.wikipedia.org/w/api.php",
+      "selected": false
+    }
+  ]
 }
