@@ -63,10 +63,6 @@ val httpClientAndroid = HttpClient(Android) {
     }
 
     install(DefaultRequest) {
-        header(HttpHeaders.ContentType, ContentType.Application.Json)
-    }
-
-    defaultRequest {
         contentType(ContentType.Application.Json)
         accept(ContentType.Application.Json)
     }
