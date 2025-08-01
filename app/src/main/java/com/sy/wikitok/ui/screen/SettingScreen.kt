@@ -107,13 +107,18 @@ fun SettingScreen(
                 }
 
                 is SettingViewModel.Effect.Update -> {
-                    SnackbarManager.showSnackbar(
-                        "发现新版本", actionLabel = "下载",
-                        onAction = {
-                            val downloadPath = context.getExternalFilesDir(DIRECTORY_DOWNLOADS)
-                            settingViewModel.downloadAppUpdate(effect.versionInfo, downloadPath)
-                        }
-                    )
+                    val versionInfo = effect.versionInfo
+                    if (versionInfo.hasUpdate){
+                        SnackbarManager.showSnackbar(
+                            "发现新版本", actionLabel = "下载",
+                            onAction = {
+                                val downloadPath = context.getExternalFilesDir(DIRECTORY_DOWNLOADS)
+                                settingViewModel.downloadAppUpdate(effect.versionInfo, downloadPath)
+                            }
+                        )
+                    } else{
+                        SnackbarManager.showSnackbar("当前已是最新版本")
+                    }
                 }
             }
         }
