@@ -51,9 +51,6 @@ class FavoriteViewModel(
 
     val favListState = LazyListState()
 
-    var aiSummaryExpand by mutableStateOf(false)
-        private set
-
     sealed class UiState {
         data class Success(val wikiList: List<WikiModel>) : UiState()
         data class Error(val message: String) : UiState()
@@ -100,14 +97,11 @@ class FavoriteViewModel(
     private var _genAiJob: Job? = null
 
     fun aiSummary() {
-        aiSummaryExpand = aiSummaryExpand.not()
-        if (aiSummaryExpand.not()) {
-            return
-        }
         if (_genAiJob?.isActive == true) {
             Logger.d(tag = "FavoriteVM", message = "genAiJob is already running")
             return
         }
+        Logger.d(tag = "FavoriteVM", message = "genAiJob start")
         _genAiJob = viewModelScope.launch {
             val wikiItems: List<String> = wikiRepo.readLocalFavorites().map {
                 it.title

@@ -1,5 +1,6 @@
 package com.sy.wikitok.ui.screen
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -267,19 +268,21 @@ fun ChatInput(
             })
         )
         Spacer(modifier = Modifier.width(8.dp))
-        IconButton(
-            onClick = {
-                if (text.isNotBlank()) {
-                    onSendMessage(text)
-                    text = ""
+        Card(modifier = Modifier.size(48.dp).background(MaterialTheme.colorScheme.background), shape = MaterialTheme.shapes.large) {
+            IconButton(
+                onClick = {
+                    if (text.isNotBlank()) {
+                        onSendMessage(text)
+                        text = ""
+                    }
                 }
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Send,
+                    contentDescription = "发送",
+                    tint = if (text.isNotBlank()) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurface
+                )
             }
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.Send,
-                contentDescription = "发送",
-                tint = if (text.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-            )
         }
     }
 }

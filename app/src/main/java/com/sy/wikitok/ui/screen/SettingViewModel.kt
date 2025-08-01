@@ -135,10 +135,8 @@ class SettingViewModel(
             if (downloadDir.exists().not()) {
                 downloadDir.mkdirs()
             }
-//            val apkUrl = versionInfo.downloadUrl.android.url
-//            val apkName = "${versionInfo.downloadUrl.android.md5}.apk"
-             val apkUrl = "https://github.com/coreycao/wikitok-android/releases/download/v0.1.1-alpha/wikitok-release.apk"
-             val apkName = "app-release.apk"
+            val apkUrl = versionInfo.downloadUrl.android.url
+            val apkName = "${versionInfo.downloadUrl.android.md5}.apk"
             val apkFile = File(downloadDir, apkName)
             if (apkFile.exists()) {
                 Logger.d("already downloaded")
