@@ -67,11 +67,13 @@ sealed class MainRoute {
     object Setting : MainRoute()
 
     @Serializable
-    data class Chat(val id: String,
-                    val title: String,
-                    val content: String,
-                    val imgUrl: String,
-                    val linkUrl: String) : MainRoute()
+    data class Chat(
+        val id: String,
+        val title: String,
+        val content: String,
+        val imgUrl: String,
+        val linkUrl: String
+    ) : MainRoute()
 }
 
 class MainActivity : ComponentActivity() {
@@ -127,9 +129,7 @@ private fun HomeScaffold() {
         NavHost(
             navController = navController,
             startDestination = MainRoute.MainScreen,
-            modifier = Modifier
-                 .consumeWindowInsets(innerPadding)
-                 .padding(innerPadding)
+            modifier = Modifier.consumeWindowInsets(innerPadding)
         ) {
 
             // Home Screen with bottom bar
@@ -142,7 +142,7 @@ private fun HomeScaffold() {
 
             // AI Chat Screen
             composable<MainRoute.Chat>(
-            ){ it->
+            ) { it ->
                 val route = it.toRoute<MainRoute.Chat>()
                 val wikiModel = WikiModel(
                     id = route.id,
@@ -152,8 +152,7 @@ private fun HomeScaffold() {
                     linkUrl = route.linkUrl
                 )
                 ChatScreen(
-                    // modifier = Modifier.padding(innerPadding),
-                    homeInnerPadding = innerPadding,
+                    modifier = Modifier.padding(innerPadding),
                     wikiInfo = wikiModel,
                     onBack = {
                         navController.popBackStack()
@@ -217,13 +216,13 @@ fun MainScreenWithBottomBar(homeInnerPadding: PaddingValues, navController: NavH
 
             composable<MainRoute.Favorite> {
                 FavoriteScreen(
-                     // modifier = Modifier.padding(top = homeInnerPadding.calculateTopPadding())
+                    modifier = Modifier.padding(top = homeInnerPadding.calculateTopPadding())
                 )
             }
 
             composable<MainRoute.Setting> {
                 SettingScreen(
-                    // modifier = Modifier.padding(top = innerPadding.calculateTopPadding())
+                    modifier = Modifier.padding(top = homeInnerPadding.calculateTopPadding())
                 )
             }
         }

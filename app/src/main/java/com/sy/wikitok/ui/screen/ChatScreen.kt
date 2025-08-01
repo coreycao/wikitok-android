@@ -68,7 +68,6 @@ import org.koin.core.parameter.parametersOf
 @Composable
 fun ChatScreen(
     modifier: Modifier = Modifier,
-    homeInnerPadding: PaddingValues,
     wikiInfo: WikiModel,
     onBack: () -> Unit = {}
 ) {
@@ -92,7 +91,7 @@ fun ChatScreen(
     }
 
     Scaffold(
-        modifier = Modifier
+        modifier = modifier
             .imePadding()
             .statusBarsPadding(),
         topBar = {

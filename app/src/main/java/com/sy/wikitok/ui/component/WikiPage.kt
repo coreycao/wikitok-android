@@ -21,6 +21,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -52,9 +53,13 @@ fun WikiPage(
 
     // get status bar's height
     val view = LocalView.current
-    val windowInsets = ViewCompat.getRootWindowInsets(view)
-    val statusBarHeight = windowInsets?.getInsets(WindowInsetsCompat.Type.systemBars())?.top ?: 0
-    val statusBarHeightDp = with(LocalDensity.current) { statusBarHeight.toDp() }
+    val density = LocalDensity.current
+
+    val statusBarHeightDp = remember(view) {
+        val windowInsets = ViewCompat.getRootWindowInsets(view)
+        val statusBarHeight = windowInsets?.getInsets(WindowInsetsCompat.Type.systemBars())?.top ?: 0
+        with(density) { statusBarHeight.toDp() }
+    }
 
     HeartAnimation(modifier = Modifier.fillMaxSize(), onAnimationEnd = { onDoubleTapped(wikiModel) }) {
         NetworkImage(
@@ -137,7 +142,7 @@ fun WikiPage(
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(/*top = statusBarHeightDp,*/ end = 32.dp)
+                .padding(top = statusBarHeightDp, end = 32.dp)
                 .size(28.dp)
                 .clickable {
                     val intent = Intent(Intent.ACTION_SEND).apply {
