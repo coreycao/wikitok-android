@@ -10,12 +10,16 @@ import com.sy.wikitok.data.model.WikiModel
 import com.sy.wikitok.data.repository.GenAIRepository
 import com.sy.wikitok.data.repository.WikiRepository
 import com.sy.wikitok.utils.Logger
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -23,6 +27,7 @@ import kotlinx.coroutines.launch
  * @author Yeung
  * @date 2025/3/22
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class FeedViewModel(
     private val wikiRepository: WikiRepository,
     private val genAIRepository: GenAIRepository
@@ -62,7 +67,7 @@ class FeedViewModel(
         }
         isRefreshing = true
         refreshJob = viewModelScope.launch {
-            wikiRepository.observableRemoteWikiFeed.first().fold(
+            wikiRepository.languageBasedWikiFeed.first().fold(
                 onSuccess = {
                     Logger.d("refresh success")
                     updateCurrentPage(0)
@@ -75,7 +80,7 @@ class FeedViewModel(
         }
     }
 
-    val feedUiState = wikiRepository.observableFeed
+    val feedUiState = wikiRepository.observableLocalFeed
         .map { list ->
             if (list.isEmpty()) {
                 Logger.d(tag = "FeedViewModel", message = "feedDB: empty")
@@ -99,13 +104,15 @@ class FeedViewModel(
 
     init {
         Logger.d(tag = "FeedViewModel", message = "onCreated")
-        viewModelScope.launch {
-            wikiRepository.observableRemoteWikiFeed
-                .collect {
-                    Logger.d(message = "collect remote feed")
-                    isRefreshing = false
-                }
-        }
+        wikiRepository.observeLanguageSetting()
+            .distinctUntilChanged()
+            .onEach { language ->
+                Logger.d(tag = "FeedViewModel", message = "Language Changed: ${language.name}")
+                isRefreshing = true
+                wikiRepository.observeRemoteWikiFeed(language.api).first()
+                isRefreshing = false
+            }
+            .launchIn(viewModelScope)
     }
 
     override fun onCleared() {

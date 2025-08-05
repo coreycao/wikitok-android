@@ -18,7 +18,6 @@ import com.sy.wikitok.utils.loadJsonFromAssetsAsFlow
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -37,30 +36,31 @@ class WikiRepository(
 ) {
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val observableRemoteWikiFeed = observeLanguageSetting()
-        .distinctUntilChanged()
+    val languageBasedWikiFeed = observeLanguageSetting()
         .flatMapLatest { language ->
             Logger.d("Language Changed: ${language.name}")
-            wikiApiService.observerWikiList(language.api)
-                .onEach {
-                    if (it.isSuccess) {
-                        Logger.d(tag = "WikiRepository", message = "feedRemote: success")
-                        val list = it.getOrThrow().toWikiModelList()
-                        Logger.d(
-                            tag = "WikiRepository",
-                            message = "feedRemote: success, count: ${list.size}"
-                        )
-                        saveAndMergeWikiList(list)
-                    } else {
-                        Logger.e(
-                            tag = "WikiRepository",
-                            message = "feedRemote, failure: ${it.exceptionOrNull()}"
-                        )
-                    }
-                }
+            observeRemoteWikiFeed(language.api)
         }
 
-    private fun observeLanguageSetting() = langDao.observeSelectedLanguage()
+    fun observeRemoteWikiFeed(api:String) = wikiApiService.observerWikiList(api)
+        .onEach {
+            if (it.isSuccess) {
+                Logger.d(tag = "WikiRepository", message = "feedRemote: success")
+                val list = it.getOrThrow().toWikiModelList()
+                Logger.d(
+                    tag = "WikiRepository",
+                    message = "feedRemote: success, count: ${list.size}"
+                )
+                saveAndMergeWikiList(list)
+            } else {
+                Logger.e(
+                    tag = "WikiRepository",
+                    message = "feedRemote, failure: ${it.exceptionOrNull()}"
+                )
+            }
+        }
+
+    fun observeLanguageSetting() = langDao.observeSelectedLanguage()
         .map { entity ->
             entity?.toModel() ?: defaultLanguage()
         }
@@ -79,7 +79,7 @@ class WikiRepository(
             }
     }
 
-    val observableFeed = feedDao.observerFeeds().map { entities ->
+    val observableLocalFeed = feedDao.observerFeeds().map { entities ->
         entities.map { entity ->
             entity.toWikiModel()
         }
